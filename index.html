@@ -33,7 +33,7 @@
       display:flex;flex-direction:column;align-items:center;
       overflow-x:hidden;overflow-y:auto;
       -webkit-overflow-scrolling:touch;
-      padding:calc(var(--st) + 14px) 14px calc(var(--sb) + 24px);
+      padding:calc(var(--st) + 14px) 14px calc(var(--sb) + 90px);
     }
 
     /* Background orbs — pointer-events:none to never block taps */
@@ -287,9 +287,9 @@
     @keyframes rippleAnim{to{transform:scale(4);opacity:0;}}
     .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(61,53,48,.84);color:rgba(255,252,245,.95);font-size:12px;letter-spacing:.08em;font-weight:300;padding:9px 20px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-    .a2hs{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+12px);left:50%;transform:translateX(-50%);background:rgba(61,53,48,.88);color:rgba(255,252,245,.92);font-size:11px;font-weight:300;line-height:1.65;padding:10px 16px;border-radius:14px;display:none;z-index:300;max-width:calc(100vw - 28px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.18);}
-    .a2hs.show{display:block;}
-    .a2hs-x{float:right;margin-left:10px;opacity:.5;cursor:pointer;}
+    .a2hs{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+12px);left:50%;transform:translateX(-50%);background:rgba(61,53,48,.88);color:rgba(255,252,245,.92);font-size:11px;font-weight:300;line-height:1.65;padding:10px 16px;border-radius:14px;display:none;z-index:300;max-width:calc(100vw - 28px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.18);pointer-events:none;}
+    .a2hs.show{display:block;pointer-events:auto;}
+    .a2hs-x{float:right;margin-left:10px;opacity:.5;cursor:pointer;pointer-events:auto;}
     .app-footer{text-align:center;font-size:10px;letter-spacing:.16em;color:var(--ink-light);opacity:.22;font-weight:300;padding:4px 0 2px;}
   </style>
 </head>
@@ -441,9 +441,15 @@ $('dateLabel').textContent = today;
 $('footerDate').textContent = today;
 function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
 
-const isSafariMobile=/iP(hone|ad|od)/.test(navigator.userAgent)&&!window.navigator.standalone;
-if(isSafariMobile&&!localStorage.getItem('onemin_a2hs')){ setTimeout(()=>$('a2hsBanner').classList.add('show'),3500); }
-function dismissA2HS(){ $('a2hsBanner').classList.remove('show'); localStorage.setItem('onemin_a2hs','1'); }
+// Show "Add to Home Screen" hint only on Safari iOS browser (not in standalone/PWA mode)
+const isSafariIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent) && !window.navigator.standalone;
+if(isSafariIOS && !localStorage.getItem('onemin_a2hs_done')){
+  setTimeout(()=>$('a2hs').classList.add('show'), 4000);
+}
+function dismissA2HS(){
+  $('a2hs').classList.remove('show');
+  localStorage.setItem('onemin_a2hs_done','1');
+}
 
 // ── Tabs ──
 function switchTab(name){
