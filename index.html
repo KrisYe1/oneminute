@@ -20,54 +20,58 @@
       --gold:#c4a96f;
       --todo:#d4826e;
       --weather:#5a9e8f;
-      --safe-bottom:env(safe-area-inset-bottom,0px);
-      --safe-top:env(safe-area-inset-top,0px);
+      --sb:env(safe-area-inset-bottom,0px);
+      --st:env(safe-area-inset-top,0px);
     }
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-    html{height:100%;}
+    html,body{height:100%;}
     body{
-      background:var(--cream);font-family:'Noto Sans SC',sans-serif;color:var(--ink);
-      min-height:100dvh;display:flex;flex-direction:column;align-items:center;
-      overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;
-      padding:calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 20px);
-      position:relative;
+      background:var(--cream);
+      font-family:'Noto Sans SC',sans-serif;
+      color:var(--ink);
+      min-height:100dvh;
+      display:flex;flex-direction:column;align-items:center;
+      overflow-x:hidden;overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      padding:calc(var(--st) + 14px) 14px calc(var(--sb) + 24px);
     }
-    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
-    .bg-orb{position:fixed;border-radius:50%;filter:blur(60px);opacity:.18;pointer-events:none;z-index:0;}
+
+    /* Background orbs — pointer-events:none to never block taps */
+    .bg-orb{position:fixed;border-radius:50%;filter:blur(60px);opacity:.17;pointer-events:none;z-index:0;}
     .orb-1{width:300px;height:300px;top:-80px;right:-60px;background:radial-gradient(circle,#a8cdd9,transparent);}
     .orb-2{width:220px;height:220px;bottom:-40px;left:-40px;background:radial-gradient(circle,#b5ceb5,transparent);}
     .orb-3{width:150px;height:150px;top:50%;left:55%;opacity:.07;background:radial-gradient(circle,var(--gold),transparent);}
 
-    /* ── App shell ── */
-    .app{
-      position:relative;z-index:1;width:100%;max-width:440px;
-      display:flex;flex-direction:column;gap:10px;
-    }
+    /* App wrapper — position:relative so children stack correctly */
+    .app{position:relative;z-index:1;width:100%;max-width:440px;display:flex;flex-direction:column;gap:10px;}
 
-    /* ── Header card ── */
-    .header-card{
-      background:rgba(255,252,245,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-      border:1px solid rgba(196,169,111,.14);border-radius:22px;
-      padding:20px 20px 0;
-      box-shadow:0 2px 0 rgba(196,169,111,.08),0 8px 32px rgba(61,53,48,.06);
+    /* Cards — NO backdrop-filter on mobile (causes stacking context bugs in Safari) */
+    .card{
+      background:rgba(255,250,242,.94);
+      border-radius:22px;
       overflow:hidden;
+      box-shadow:0 2px 0 rgba(196,169,111,.09),0 8px 32px rgba(61,53,48,.07);
     }
-    .app-header{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;}
+    .card-weather{border:1px solid rgba(90,158,143,.16);}
+    .card-tracker{border:1px solid rgba(196,169,111,.13);}
+    .card-todo{border:1px solid rgba(212,130,110,.13);}
+
+    /* Header */
+    .app-header{padding:20px 20px 0;display:flex;flex-direction:column;align-items:center;}
     .app-title{font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--ink);}
     .app-date{font-size:11px;font-weight:300;letter-spacing:.18em;color:var(--ink-light);margin-top:3px;}
 
     /* Tabs */
-    .tab-bar{display:flex;background:var(--cream-dark);border-radius:100px;padding:4px;gap:2px;}
-    .tab-btn{flex:1;border:none;background:none;border-radius:100px;padding:9px 6px;font-family:inherit;font-size:11px;font-weight:300;letter-spacing:.04em;color:var(--ink-light);cursor:pointer;transition:background .3s,color .3s,box-shadow .3s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;-webkit-user-select:none;user-select:none;}
-    .tab-btn.active{background:rgba(255,252,245,.95);color:var(--ink);box-shadow:0 2px 8px rgba(61,53,48,.08);}
+    .tab-bar{display:flex;margin:16px 16px 0;background:var(--cream-dark);border-radius:100px;padding:4px;gap:2px;}
+    .tab-btn{flex:1;border:none;background:none;border-radius:100px;padding:10px 6px;font-family:inherit;font-size:11px;font-weight:300;letter-spacing:.04em;color:var(--ink-light);cursor:pointer;transition:background .25s,color .25s,box-shadow .25s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;-webkit-user-select:none;user-select:none;}
+    .tab-btn.active{background:#fff9f0;color:var(--ink);box-shadow:0 2px 8px rgba(61,53,48,.08);}
 
-    /* Panels inside header card */
-    .panels-wrap{position:relative;}
-    .panel{display:none;padding:18px 0 18px;flex-direction:column;align-items:center;animation:fadeUp .3s ease;}
+    /* Panels */
+    .panel{display:none;padding:18px 18px 16px;flex-direction:column;align-items:center;animation:fadeUp .28s ease;}
     .panel.active{display:flex;}
     @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 
-    /* ── Water ── */
+    /* Water */
     .ring-container{position:relative;width:150px;height:150px;margin-bottom:14px;}
     .ring-svg{width:150px;height:150px;transform:rotate(-90deg);}
     .ring-track{fill:none;stroke:var(--cream-dark);stroke-width:9;}
@@ -78,26 +82,26 @@
     .count-text.bump{transform:scale(1.2);}
     .unit-text{font-size:10px;letter-spacing:.14em;color:var(--ink-light);font-weight:300;}
     .drops-row{display:flex;gap:5px;margin-bottom:14px;}
-    .drop{width:12px;height:15px;}
-    .drop svg{width:12px;height:15px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+    .drop{width:13px;height:16px;}
+    .drop svg{width:13px;height:16px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
     .drop.filled svg{transform:scale(1.1);}
     .drop.just-filled svg{animation:dropPop .4s cubic-bezier(.34,1.56,.64,1);}
     @keyframes dropPop{0%{transform:scale(1)}50%{transform:scale(1.4) translateY(-3px)}100%{transform:scale(1.1)}}
     .complete-msg{margin-top:8px;font-size:11px;letter-spacing:.1em;color:var(--sage);font-weight:300;opacity:0;transform:translateY(4px);transition:opacity .5s,transform .5s;height:15px;}
     .complete-msg.visible{opacity:1;transform:translateY(0);}
 
-    /* ── Sleep ── */
+    /* Sleep */
     .sleep-display{width:100%;background:rgba(155,142,196,.08);border:1px solid rgba(155,142,196,.18);border-radius:14px;padding:14px 15px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
     .sleep-duration{font-size:34px;font-weight:300;color:var(--sleep);letter-spacing:-.02em;line-height:1;}
     .sleep-duration span{font-size:12px;color:var(--ink-light);font-weight:300;margin-left:1px;}
     .quality-label{font-size:10px;letter-spacing:.1em;color:var(--ink-light);font-weight:300;margin-bottom:5px;text-align:right;}
-    .quality-stars{display:flex;gap:5px;}
-    .star{width:13px;height:13px;border-radius:50%;background:var(--cream-dark);transition:background .3s;cursor:pointer;}
+    .quality-stars{display:flex;gap:6px;}
+    .star{width:16px;height:16px;border-radius:50%;background:var(--cream-dark);transition:background .3s;cursor:pointer;}
     .star.lit{background:var(--sleep);}
     .time-inputs{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
     .time-field{display:flex;flex-direction:column;gap:4px;}
     .time-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;}
-    .time-input{background:rgba(255,252,245,.85);border:1px solid var(--cream-dark);border-radius:9px;padding:10px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
+    .time-input{background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:9px;padding:11px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
     .time-input:focus{border-color:var(--sleep-light);}
     .sleep-history{width:100%;margin-bottom:8px;}
     .history-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin-bottom:6px;}
@@ -107,28 +111,28 @@
     .bar.today{background:var(--sleep);}
     .bar-day{font-size:8px;color:var(--ink-light);font-weight:300;}
 
-    /* ── Pill ── */
+    /* Pill */
     .pill-list{width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
-    .pill-item{display:flex;align-items:center;gap:10px;background:rgba(255,252,245,.7);border:1px solid var(--cream-dark);border-radius:12px;padding:11px 11px;cursor:pointer;transition:border-color .2s,background .2s;-webkit-user-select:none;user-select:none;}
+    .pill-item{display:flex;align-items:center;gap:10px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;cursor:pointer;-webkit-user-select:none;user-select:none;}
     .pill-item.taken{background:rgba(196,149,111,.07);border-color:rgba(196,149,111,.3);}
-    .pill-check{width:23px;height:23px;border-radius:50%;border:1.5px solid var(--cream-dark);display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
+    .pill-check{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--cream-dark);display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
     .pill-item.taken .pill-check{background:var(--pill);border-color:var(--pill);color:white;transform:scale(1.1);}
     .pill-info{flex:1;min-width:0;}
     .pill-name{font-size:13px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pill-time{font-size:10px;font-weight:300;color:var(--ink-light);margin-top:1px;}
     .pill-emoji{font-size:16px;flex-shrink:0;}
-    .pill-add-area{width:100%;background:rgba(255,252,245,.6);border:1px solid var(--cream-dark);border-radius:13px;padding:10px 12px 9px;display:flex;flex-direction:column;margin-bottom:4px;}
-    .pill-name-input{background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:8px;padding:9px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
+    .pill-add-area{width:100%;background:rgba(255,252,245,.7);border:1px solid var(--cream-dark);border-radius:13px;padding:11px 12px 10px;display:flex;flex-direction:column;margin-bottom:4px;}
+    .pill-name-input{background:#fffaf3;border:1px solid var(--cream-dark);border-radius:8px;padding:10px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
     .pill-name-input:focus{border-color:var(--pill-light);}
-    .pill-name-input::placeholder{color:var(--ink-light);opacity:.5;}
+    .pill-name-input::placeholder{color:var(--ink-light);opacity:.45;}
     .time-chips-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin:8px 0 5px;}
-    .time-chips{display:flex;flex-wrap:wrap;gap:5px;}
-    .chip{padding:5px 11px;border-radius:100px;font-size:11px;font-weight:300;color:var(--ink-light);background:var(--cream-dark);cursor:pointer;transition:background .2s,color .2s;-webkit-user-select:none;user-select:none;}
+    .time-chips{display:flex;flex-wrap:wrap;gap:6px;}
+    .chip{padding:7px 13px;border-radius:100px;font-size:11px;font-weight:300;color:var(--ink-light);background:var(--cream-dark);cursor:pointer;-webkit-user-select:none;user-select:none;}
     .chip.active{background:var(--pill);color:white;}
 
-    /* ── Reminder bar ── */
-    .reminder-bar{width:100%;margin-top:10px;background:rgba(255,252,245,.55);border:1px solid var(--cream-dark);border-radius:12px;overflow:hidden;}
-    .reminder-bar-header{display:flex;align-items:center;gap:7px;padding:11px 12px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+    /* Reminder bar */
+    .reminder-bar{width:100%;margin-top:10px;background:rgba(255,250,242,.8);border:1px solid var(--cream-dark);border-radius:12px;overflow:hidden;}
+    .reminder-bar-header{display:flex;align-items:center;gap:7px;padding:12px 12px;cursor:pointer;min-height:44px;-webkit-user-select:none;user-select:none;}
     .reminder-bell{font-size:13px;flex-shrink:0;}
     .reminder-bar-title{font-size:11px;font-weight:300;letter-spacing:.08em;color:var(--ink-light);flex:1;opacity:.7;}
     .reminder-bar-summary{font-size:10px;font-weight:300;color:var(--ink-light);opacity:.5;max-width:55%;text-align:right;}
@@ -138,9 +142,9 @@
     .reminder-body.open{max-height:400px;padding:0 12px 11px;}
     .perm-notice{display:flex;align-items:center;gap:7px;background:rgba(155,142,196,.08);border:1px solid rgba(155,142,196,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
     .perm-notice-text{font-size:11px;font-weight:300;color:var(--ink-light);flex:1;line-height:1.5;}
-    .perm-grant-btn{padding:5px 11px;border-radius:100px;background:var(--sleep);border:none;color:white;font-family:inherit;font-size:11px;font-weight:300;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+    .perm-grant-btn{padding:6px 12px;border-radius:100px;background:var(--sleep);border:none;color:white;font-family:inherit;font-size:11px;font-weight:300;cursor:pointer;white-space:nowrap;flex-shrink:0;}
     .reminder-time-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
-    .reminder-time-row{display:flex;align-items:center;gap:7px;background:rgba(255,252,245,.85);border:1px solid var(--cream-dark);border-radius:8px;padding:8px 10px;}
+    .reminder-time-row{display:flex;align-items:center;gap:7px;background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:8px;padding:9px 10px;}
     .rtr-time{flex:1;background:none;border:none;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;cursor:pointer;min-width:0;-webkit-appearance:none;}
     .toggle{position:relative;width:34px;height:20px;flex-shrink:0;}
     .toggle input{opacity:0;width:0;height:0;position:absolute;}
@@ -148,13 +152,13 @@
     .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 3px rgba(0,0,0,.15);}
     .toggle input:checked+.toggle-slider{background:var(--sage);}
     .toggle input:checked+.toggle-slider::before{transform:translateX(14px);}
-    .rtr-del{background:none;border:none;color:var(--ink-light);opacity:.25;cursor:pointer;font-size:13px;padding:4px;flex-shrink:0;}
+    .rtr-del{background:none;border:none;color:var(--ink-light);opacity:.25;cursor:pointer;font-size:14px;padding:6px;flex-shrink:0;}
     .rtr-del:active{opacity:.7;}
-    .add-time-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;background:none;border:1px dashed var(--cream-dark);border-radius:7px;padding:7px;font-family:inherit;font-size:11px;font-weight:300;color:var(--ink-light);cursor:pointer;letter-spacing:.05em;}
+    .add-time-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;background:none;border:1px dashed var(--cream-dark);border-radius:8px;padding:9px;font-family:inherit;font-size:11px;font-weight:300;color:var(--ink-light);cursor:pointer;letter-spacing:.05em;}
     .add-time-btn:active{border-color:var(--gold);color:var(--ink);}
 
-    /* ── Shared buttons ── */
-    .action-btn{position:relative;padding:13px 0;width:100%;border:none;border-radius:100px;color:white;font-family:inherit;font-size:13px;font-weight:300;letter-spacing:.14em;cursor:pointer;outline:none;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1);-webkit-user-select:none;user-select:none;}
+    /* Buttons */
+    .action-btn{position:relative;padding:14px 0;width:100%;border:none;border-radius:100px;color:white;font-family:inherit;font-size:13px;font-weight:300;letter-spacing:.14em;cursor:pointer;outline:none;overflow:hidden;-webkit-user-select:none;user-select:none;}
     .action-btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.14);opacity:0;border-radius:inherit;}
     .action-btn:active::before{opacity:1;}
     .action-btn:active{transform:scale(.97);}
@@ -163,133 +167,21 @@
     .btn-water.done:active{transform:none;}
     .btn-sleep{background:var(--sleep);box-shadow:0 3px 14px rgba(155,142,196,.35);}
     .btn-pill-add{background:var(--pill);box-shadow:0 3px 14px rgba(196,149,111,.3);font-size:12px;letter-spacing:.1em;margin-top:8px;}
-    .reset-link{margin-top:6px;font-size:11px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;padding:3px 0;}
+    .reset-link{margin-top:6px;font-size:11px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;padding:5px 0;display:block;}
     .reset-link:active{opacity:.65;}
 
-    /* ════════════════════════
-       AI FLOATING BALL
-       ════════════════════════ */
-    .ai-fab{
-      position:fixed;
-      right:20px;
-      bottom:calc(env(safe-area-inset-bottom,0px) + 28px);
-      width:52px;height:52px;
-      border-radius:50%;
-      background:linear-gradient(145deg,#7bafc4,#8aab8a);
-      box-shadow:0 4px 20px rgba(61,53,48,.18),0 1px 4px rgba(61,53,48,.1);
-      display:flex;align-items:center;justify-content:center;
-      cursor:grab;z-index:500;
-      transition:box-shadow .2s,transform .2s;
-      touch-action:none;
-      -webkit-user-select:none;user-select:none;
-    }
-    .ai-fab:active{cursor:grabbing;}
-    .ai-fab:hover{box-shadow:0 6px 28px rgba(61,53,48,.22);}
-    .ai-fab.dragging{box-shadow:0 10px 36px rgba(61,53,48,.26);transform:scale(1.06);}
-    /* SVG icon inside fab */
-    .ai-fab svg{width:24px;height:24px;flex-shrink:0;}
-    /* Pulse ring when idle */
-    .ai-fab::after{
-      content:'';position:absolute;inset:-4px;border-radius:50%;
-      border:1.5px solid rgba(123,175,196,.35);
-      animation:fabPulse 2.8s ease infinite;
-    }
-    @keyframes fabPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:0;transform:scale(1.22)}}
-
-    /* Chat panel */
-    .ai-panel{
-      position:fixed;z-index:499;
-      width:min(340px, calc(100vw - 28px));
-      background:rgba(250,247,241,.96);
-      backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
-      border:1px solid rgba(196,169,111,.14);
-      border-radius:24px;
-      box-shadow:0 8px 48px rgba(61,53,48,.14),0 2px 8px rgba(61,53,48,.08);
-      display:flex;flex-direction:column;
-      overflow:hidden;
-      opacity:0;pointer-events:none;
-      transform:scale(.92) translateY(10px);
-      transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.34,1.3,.64,1);
-      max-height:min(520px,75dvh);
-    }
-    .ai-panel.open{opacity:1;pointer-events:all;transform:scale(1) translateY(0);}
-
-    .ai-panel-header{
-      display:flex;align-items:center;gap:10px;
-      padding:14px 16px 12px;
-      border-bottom:1px solid var(--cream-dark);
-      flex-shrink:0;
-    }
-    .ai-panel-icon{
-      width:30px;height:30px;border-radius:50%;
-      background:linear-gradient(135deg,#8aab8a,#7bafc4);
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    }
-    .ai-panel-icon svg{width:15px;height:15px;}
-    .ai-panel-title{flex:1;font-size:13px;font-weight:400;color:var(--ink);letter-spacing:.06em;}
-    .ai-panel-sub{font-size:10px;font-weight:300;color:var(--ink-light);margin-top:1px;}
-    .ai-dot{width:7px;height:7px;border-radius:50%;background:#8aab8a;box-shadow:0 0 0 2px rgba(138,171,138,.2);flex-shrink:0;}
-    .ai-close{width:26px;height:26px;border-radius:50%;border:1px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--ink-light);transition:background .2s;flex-shrink:0;}
-    .ai-close:active{background:var(--cream-dark);}
-
-    .ai-suggestions{padding:10px 14px 6px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;}
-    .ai-chip{padding:5px 11px;border-radius:100px;background:rgba(107,158,120,.08);border:1px solid rgba(107,158,120,.18);font-size:11px;font-weight:300;color:#5a8a64;cursor:pointer;transition:background .2s;-webkit-user-select:none;user-select:none;white-space:nowrap;}
-    .ai-chip:active{background:rgba(107,158,120,.18);}
-
-    .ai-messages{flex:1;overflow-y:auto;padding:6px 14px 8px;display:flex;flex-direction:column;gap:9px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-    .ai-messages::-webkit-scrollbar{display:none;}
-    .msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .22s ease;}
-    @keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-    .msg-user{align-items:flex-end;}
-    .msg-ai{align-items:flex-start;}
-    .msg-bubble{max-width:88%;padding:9px 12px;border-radius:15px;font-size:13px;font-weight:300;line-height:1.6;letter-spacing:.02em;}
-    .msg-user .msg-bubble{background:linear-gradient(135deg,#8aab8a,#7bafc4);color:white;border-bottom-right-radius:4px;}
-    .msg-ai .msg-bubble{background:rgba(107,158,120,.08);border:1px solid rgba(107,158,120,.14);color:var(--ink);border-bottom-left-radius:4px;}
-    .msg-time{font-size:9px;font-weight:300;color:var(--ink-light);opacity:.45;padding:0 3px;}
-    .typing-bubble{display:flex;align-items:center;gap:4px;padding:9px 12px;}
-    .typing-dot{width:5px;height:5px;border-radius:50%;background:rgba(107,158,120,.5);animation:typingBounce 1.2s ease infinite;}
-    .typing-dot:nth-child(2){animation-delay:.2s;}
-    .typing-dot:nth-child(3){animation-delay:.4s;}
-    @keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-
-    .ai-input-row{display:flex;align-items:flex-end;gap:7px;padding:9px 12px 12px;border-top:1px solid var(--cream-dark);flex-shrink:0;}
-    .ai-input{flex:1;background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:11px;padding:9px 11px;font-family:inherit;font-size:15px;font-weight:300;color:var(--ink);outline:none;resize:none;line-height:1.45;transition:border-color .2s;-webkit-appearance:none;max-height:90px;overflow-y:auto;}
-    .ai-input:focus{border-color:rgba(107,158,120,.4);}
-    .ai-input::placeholder{color:var(--ink-light);opacity:.4;}
-    .ai-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8aab8a,#7bafc4);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1),opacity .2s;}
-    .ai-send:active{transform:scale(.88);}
-    .ai-send:disabled{opacity:.35;cursor:default;}
-    .ai-send svg{width:15px;height:15px;}
-    .ai-disclaimer{padding:0 14px 9px;font-size:9px;font-weight:300;color:var(--ink-light);opacity:.4;letter-spacing:.04em;text-align:center;}
-
-
-    
-
-
-    /* ════════════════════════
-       HOME PAGE CARDS
-       ════════════════════════ */
-
-    /* Weather mini card */
-    .weather-mini{
-      background:rgba(255,252,245,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-      border:1px solid rgba(90,158,143,.16);border-radius:22px;
-      padding:16px 18px;
-      box-shadow:0 2px 0 rgba(90,158,143,.08),0 8px 28px rgba(61,53,48,.06);
-      display:flex;flex-direction:column;gap:12px;
-      animation:fadeUp .4s ease;
-    }
-    .wm-top{display:flex;align-items:center;gap:0;}
+    /* Weather */
+    .wm-pad{padding:16px 18px;}
+    .wm-top{display:flex;align-items:center;gap:0;margin-bottom:12px;}
     .wm-icon{font-size:42px;line-height:1;margin-right:10px;flex-shrink:0;}
-    .wm-temp-wrap{display:flex;flex-direction:column;}
     .wm-temp{font-size:36px;font-weight:300;color:var(--weather);line-height:1;letter-spacing:-.02em;}
-    .wm-temp span{font-size:15px;font-weight:300;color:var(--ink-light);}
+    .wm-temp span{font-size:14px;font-weight:300;color:var(--ink-light);}
     .wm-desc{font-size:12px;font-weight:300;color:var(--ink-light);margin-top:3px;}
-    .wm-right{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:2px;}
+    .wm-right{margin-left:auto;text-align:right;}
     .wm-city{font-size:13px;font-weight:400;color:var(--ink);}
     .wm-phrase{font-size:11px;font-weight:300;color:var(--weather);font-style:italic;line-height:1.5;max-width:120px;}
-    .wm-details{display:flex;gap:6px;}
-    .wm-detail{flex:1;background:rgba(90,158,143,.06);border:1px solid rgba(90,158,143,.1);border-radius:9px;padding:8px 8px;display:flex;flex-direction:column;gap:1px;}
+    .wm-details{display:flex;gap:6px;margin-bottom:12px;}
+    .wm-detail{flex:1;background:rgba(90,158,143,.06);border:1px solid rgba(90,158,143,.1);border-radius:9px;padding:8px 8px;}
     .wmd-label{font-size:9px;font-weight:300;color:var(--ink-light);letter-spacing:.08em;}
     .wmd-val{font-size:13px;font-weight:300;color:var(--ink);}
     .wm-forecast{display:flex;gap:5px;}
@@ -297,28 +189,17 @@
     .wm-fc-day{font-size:9px;font-weight:300;color:var(--ink-light);}
     .wm-fc-icon{font-size:16px;}
     .wm-fc-temp{font-size:10px;font-weight:300;color:var(--ink);}
-    .wm-loading{font-size:12px;font-weight:300;color:var(--ink-light);letter-spacing:.08em;text-align:center;padding:12px 0;}
-    .wm-error{font-size:11px;font-weight:300;color:var(--ink-light);text-align:center;line-height:1.7;padding:4px 0;}
-    .wm-retry{margin-top:8px;width:100%;padding:9px;background:none;border:1px dashed rgba(90,158,143,.3);border-radius:8px;font-family:inherit;font-size:11px;font-weight:300;color:var(--weather);cursor:pointer;letter-spacing:.06em;}
+    .wm-loading{font-size:12px;font-weight:300;color:var(--ink-light);letter-spacing:.08em;text-align:center;padding:20px 0;}
+    .wm-error{font-size:11px;font-weight:300;color:var(--ink-light);text-align:center;line-height:1.7;padding:8px 0;}
+    .wm-retry{display:block;margin-top:8px;width:100%;padding:10px;background:none;border:1px dashed rgba(90,158,143,.3);border-radius:8px;font-family:inherit;font-size:11px;font-weight:300;color:var(--weather);cursor:pointer;letter-spacing:.06em;}
 
-    /* Todo card */
-    .todo-card{
-      background:rgba(255,252,245,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-      border:1px solid rgba(212,130,110,.15);border-radius:22px;
-      padding:16px 18px;
-      box-shadow:0 2px 0 rgba(212,130,110,.08),0 8px 28px rgba(61,53,48,.06);
-      animation:fadeUp .5s ease;
-    }
+    /* Todo */
+    .tc-pad{padding:16px 18px;}
     .tc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
     .tc-title{font-size:13px;font-weight:300;letter-spacing:.1em;color:var(--ink);}
     .tc-count{font-size:11px;font-weight:300;color:var(--ink-light);letter-spacing:.04em;}
     .tc-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
-    .tc-item{
-      display:flex;align-items:flex-start;gap:9px;
-      background:rgba(255,252,245,.7);border:1px solid var(--cream-dark);
-      border-radius:12px;padding:11px 11px;
-      transition:background .25s,border-color .25s,opacity .3s;
-    }
+    .tc-item{display:flex;align-items:flex-start;gap:9px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;transition:opacity .3s;}
     .tc-item.done-item{opacity:.46;}
     .tc-item.done-item .tc-input{text-decoration:line-through;color:var(--ink-light);}
     .tc-num{width:20px;height:20px;border-radius:50%;background:var(--cream-dark);font-size:10px;font-weight:400;color:var(--ink-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:background .3s,color .3s;}
@@ -326,21 +207,90 @@
     .tc-input-wrap{flex:1;min-width:0;}
     .tc-input{width:100%;background:none;border:none;font-family:inherit;font-size:14px;font-weight:300;color:var(--ink);outline:none;line-height:1.45;-webkit-appearance:none;resize:none;overflow:hidden;}
     .tc-input::placeholder{color:var(--ink-light);opacity:.38;}
-    .tc-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:2px;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);font-size:10px;color:transparent;}
+    .tc-check{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);-webkit-user-select:none;user-select:none;}
     .tc-item.done-item .tc-check{background:var(--todo);border-color:var(--todo);color:white;transform:scale(1.05);}
     .tc-motivation{font-size:11px;font-weight:300;letter-spacing:.06em;color:var(--ink-light);text-align:center;padding:6px 0 2px;line-height:1.65;}
     .tc-motivation.all-done{color:var(--todo);}
-    .tc-reset{display:block;margin:6px auto 0;font-size:10px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;}
+    .tc-reset{display:block;margin:6px auto 0;font-size:10px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;padding:4px 8px;}
 
-    .app-footer{text-align:center;font-size:10px;letter-spacing:.16em;color:var(--ink-light);opacity:.22;font-weight:300;padding:6px 0 2px;}
+    /* AI Floating Ball */
+    .ai-fab{
+      position:fixed;
+      right:20px;
+      bottom:calc(env(safe-area-inset-bottom,0px) + 28px);
+      width:54px;height:54px;border-radius:50%;
+      background:linear-gradient(145deg,#7bafc4,#8aab8a);
+      box-shadow:0 4px 20px rgba(61,53,48,.2),0 1px 4px rgba(61,53,48,.12);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      z-index:100;
+      /* NO touch-action:none here — let the browser handle it */
+      -webkit-user-select:none;user-select:none;
+    }
+    .ai-fab svg{width:24px;height:24px;}
+    .ai-fab::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(123,175,196,.3);animation:fabPulse 3s ease infinite;pointer-events:none;}
+    @keyframes fabPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:0;transform:scale(1.2)}}
 
+    /* AI Chat Panel */
+    .ai-panel{
+      position:fixed;
+      z-index:101;
+      width:min(340px,calc(100vw - 28px));
+      max-height:min(520px,75dvh);
+      background:rgba(250,247,241,.97);
+      border:1px solid rgba(196,169,111,.14);
+      border-radius:24px;
+      box-shadow:0 8px 48px rgba(61,53,48,.14),0 2px 8px rgba(61,53,48,.08);
+      display:none;flex-direction:column;overflow:hidden;
+      opacity:0;
+      transform:scale(.92) translateY(8px);
+      transition:opacity .22s ease,transform .22s cubic-bezier(.34,1.3,.64,1);
+    }
+    .ai-panel.open{display:flex;opacity:1;transform:scale(1) translateY(0);}
+    .ai-ph{display:flex;align-items:center;gap:10px;padding:13px 15px 11px;border-bottom:1px solid var(--cream-dark);flex-shrink:0;}
+    .ai-ph-icon{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#8aab8a,#7bafc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .ai-ph-icon svg{width:15px;height:15px;}
+    .ai-ph-title{flex:1;font-size:13px;font-weight:400;color:var(--ink);letter-spacing:.06em;}
+    .ai-ph-sub{font-size:10px;font-weight:300;color:var(--ink-light);margin-top:1px;}
+    .ai-dot{width:7px;height:7px;border-radius:50%;background:#8aab8a;flex-shrink:0;}
+    .ai-close-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--ink-light);flex-shrink:0;}
+    .ai-sugg{padding:9px 13px 5px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;}
+    .ai-chip{padding:5px 11px;border-radius:100px;background:rgba(107,158,120,.08);border:1px solid rgba(107,158,120,.18);font-size:11px;font-weight:300;color:#5a8a64;cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap;}
+    .ai-chip:active{background:rgba(107,158,120,.18);}
+    .ai-msgs{flex:1;overflow-y:auto;padding:6px 13px 6px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .ai-msgs::-webkit-scrollbar{display:none;}
+    .msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .2s ease;}
+    @keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .msg-user{align-items:flex-end;}
+    .msg-ai{align-items:flex-start;}
+    .msg-bubble{max-width:88%;padding:9px 12px;border-radius:15px;font-size:13px;font-weight:300;line-height:1.6;}
+    .msg-user .msg-bubble{background:linear-gradient(135deg,#8aab8a,#7bafc4);color:white;border-bottom-right-radius:4px;}
+    .msg-ai .msg-bubble{background:rgba(107,158,120,.09);border:1px solid rgba(107,158,120,.14);color:var(--ink);border-bottom-left-radius:4px;}
+    .msg-time{font-size:9px;font-weight:300;color:var(--ink-light);opacity:.4;padding:0 3px;}
+    .typing-bubble{display:flex;align-items:center;gap:4px;padding:9px 12px;}
+    .typing-dot{width:5px;height:5px;border-radius:50%;background:rgba(107,158,120,.5);animation:typingBounce 1.2s ease infinite;}
+    .typing-dot:nth-child(2){animation-delay:.2s;}
+    .typing-dot:nth-child(3){animation-delay:.4s;}
+    @keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+    .ai-input-row{display:flex;align-items:flex-end;gap:7px;padding:9px 12px 12px;border-top:1px solid var(--cream-dark);flex-shrink:0;}
+    .ai-input{flex:1;background:#fffaf3;border:1px solid var(--cream-dark);border-radius:11px;padding:9px 11px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;resize:none;line-height:1.45;transition:border-color .2s;-webkit-appearance:none;max-height:90px;overflow-y:auto;}
+    .ai-input:focus{border-color:rgba(107,158,120,.4);}
+    .ai-input::placeholder{color:var(--ink-light);opacity:.4;}
+    .ai-send-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8aab8a,#7bafc4);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+    .ai-send-btn:active{transform:scale(.88);}
+    .ai-send-btn:disabled{opacity:.35;}
+    .ai-send-btn svg{width:14px;height:14px;}
+    .ai-disc{padding:0 13px 8px;font-size:9px;font-weight:300;color:var(--ink-light);opacity:.4;text-align:center;}
+
+    /* Shared */
     .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.28);transform:scale(0);animation:rippleAnim .6s linear;pointer-events:none;}
     @keyframes rippleAnim{to{transform:scale(4);opacity:0;}}
-    .toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(61,53,48,.84);color:rgba(255,252,245,.95);font-size:12px;letter-spacing:.08em;font-weight:300;padding:9px 20px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
+    .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(61,53,48,.84);color:rgba(255,252,245,.95);font-size:12px;letter-spacing:.08em;font-weight:300;padding:9px 20px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-    .a2hs-banner{position:fixed;bottom:calc(var(--safe-bottom)+12px);left:50%;transform:translateX(-50%);background:rgba(61,53,48,.88);color:rgba(255,252,245,.92);font-size:11px;font-weight:300;letter-spacing:.05em;line-height:1.65;padding:10px 16px;border-radius:14px;display:none;z-index:300;max-width:calc(100vw - 28px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.18);}
-    .a2hs-banner.show{display:block;}
-    .a2hs-close{float:right;margin-left:10px;opacity:.5;cursor:pointer;}
+    .a2hs{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+12px);left:50%;transform:translateX(-50%);background:rgba(61,53,48,.88);color:rgba(255,252,245,.92);font-size:11px;font-weight:300;line-height:1.65;padding:10px 16px;border-radius:14px;display:none;z-index:300;max-width:calc(100vw - 28px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+    .a2hs.show{display:block;}
+    .a2hs-x{float:right;margin-left:10px;opacity:.5;cursor:pointer;}
+    .app-footer{text-align:center;font-size:10px;letter-spacing:.16em;color:var(--ink-light);opacity:.22;font-weight:300;padding:4px 0 2px;}
   </style>
 </head>
 <body>
@@ -349,15 +299,55 @@
 <div class="bg-orb orb-2"></div>
 <div class="bg-orb orb-3"></div>
 
+<!-- AI Floating Ball — rendered BEFORE script so DOM is ready when JS runs -->
+<div class="ai-fab" id="aiFab">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="rgba(255,255,255,0.96)"/>
+    <circle cx="9" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+    <circle cx="12" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+    <circle cx="15" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+  </svg>
+</div>
+
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-ph">
+    <div class="ai-ph-icon">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="white"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="ai-ph-title">健康助手</div>
+      <div class="ai-ph-sub">专注于你的健康生活</div>
+    </div>
+    <div class="ai-dot"></div>
+    <button class="ai-close-btn" id="aiCloseBtn">✕</button>
+  </div>
+  <div class="ai-sugg" id="aiSugg">
+    <div class="ai-chip">每天喝多少水合适？</div>
+    <div class="ai-chip">怎么改善睡眠？</div>
+    <div class="ai-chip">推荐补充哪些维生素？</div>
+    <div class="ai-chip">如何建立健康作息？</div>
+  </div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-input-row">
+    <textarea class="ai-input" id="aiInput" placeholder="问我任何健康问题…" rows="1"></textarea>
+    <button class="ai-send-btn" id="aiSendBtn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="ai-disc">仅供参考，不构成医疗建议。如有需要请咨询专业医生。</div>
+</div>
+
 <div class="app">
 
-  <!-- ── Weather card (top) ── -->
-  <div class="weather-mini" id="weatherCard">
-    <div class="wm-loading" id="weatherLoading">🌤 正在获取天气…</div>
+  <!-- Weather -->
+  <div class="card card-weather" id="weatherCard">
+    <div class="wm-pad" id="weatherInner">
+      <div class="wm-loading">🌤 正在获取天气…</div>
+    </div>
   </div>
 
-  <!-- ── Header + Tabs + Panels (health trackers) ── -->
-  <div class="header-card">
+  <!-- Tracker card -->
+  <div class="card card-tracker">
     <div class="app-header">
       <div class="app-title">OneMinute</div>
       <div class="app-date" id="dateLabel"></div>
@@ -367,126 +357,84 @@
       <button class="tab-btn" id="tab-sleep" onclick="switchTab('sleep')">🌙 睡眠</button>
       <button class="tab-btn" id="tab-pill"  onclick="switchTab('pill')">💊 吃药</button>
     </div>
-    <div class="panels-wrap">
 
-      <!-- Water -->
-      <div class="panel active" id="panel-water">
-        <div class="ring-container">
-          <svg class="ring-svg" viewBox="0 0 150 150">
-            <circle class="ring-track" cx="75" cy="75" r="64"/>
-            <circle class="ring-progress" id="ring" cx="75" cy="75" r="64"/>
-          </svg>
-          <div class="ring-center">
-            <div class="count-text" id="countText">0/8</div>
-            <div class="unit-text">杯</div>
-          </div>
+    <!-- Water -->
+    <div class="panel active" id="panel-water">
+      <div class="ring-container">
+        <svg class="ring-svg" viewBox="0 0 150 150">
+          <circle class="ring-track" cx="75" cy="75" r="64"/>
+          <circle class="ring-progress" id="ring" cx="75" cy="75" r="64"/>
+        </svg>
+        <div class="ring-center">
+          <div class="count-text" id="countText">0/8</div>
+          <div class="unit-text">杯</div>
         </div>
-        <div class="drops-row" id="dropsRow"></div>
-        <button class="action-btn btn-water" id="drinkBtn" onclick="handleDrink(event)">我喝水啦</button>
-        <div class="complete-msg" id="completeMsg">✦ 今天水分已满！身体感谢你 ✦</div>
-        <button class="reset-link" onclick="resetWater()">重置</button>
-        <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('water')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">喝水提醒</span><span class="reminder-bar-summary" id="rbs-water"></span><span class="reminder-chevron" id="chev-water">▾</span></div><div class="reminder-body" id="rbody-water"><div class="perm-notice" id="perm-water" style="display:none"></div><div class="reminder-time-rows" id="rrows-water"></div><button class="add-time-btn" onclick="addReminderTime('water')">＋ 添加时间</button></div></div>
       </div>
-
-      <!-- Sleep -->
-      <div class="panel" id="panel-sleep">
-        <div class="sleep-display">
-          <div><div style="font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin-bottom:4px;">昨晚睡了</div><div class="sleep-duration" id="sleepDuration">— <span>小时</span></div></div>
-          <div><div class="quality-label">睡眠质量</div><div class="quality-stars" id="qualityStars"></div></div>
-        </div>
-        <div class="time-inputs">
-          <div class="time-field"><div class="time-label">入睡时间</div><input type="time" class="time-input" id="sleepStart" value="23:00"/></div>
-          <div class="time-field"><div class="time-label">起床时间</div><input type="time" class="time-input" id="sleepEnd" value="07:00"/></div>
-        </div>
-        <div class="sleep-history"><div class="history-label">近七日睡眠</div><div class="history-bars" id="historyBars"></div></div>
-        <button class="action-btn btn-sleep" onclick="saveSleep()">记录今日睡眠</button>
-        <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('sleep')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">睡眠提醒</span><span class="reminder-bar-summary" id="rbs-sleep"></span><span class="reminder-chevron" id="chev-sleep">▾</span></div><div class="reminder-body" id="rbody-sleep"><div class="perm-notice" id="perm-sleep" style="display:none"></div><div class="reminder-time-rows" id="rrows-sleep"></div><button class="add-time-btn" onclick="addReminderTime('sleep')">＋ 添加时间</button></div></div>
-      </div>
-
-      <!-- Pill -->
-      <div class="panel" id="panel-pill">
-        <div class="pill-list" id="pillList"></div>
-        <div class="pill-add-area">
-          <input type="text" class="pill-name-input" id="pillNameInput" placeholder="添加药物 / 维生素名称" maxlength="12"/>
-          <div class="time-chips-label">服用时间</div>
-          <div class="time-chips" id="timeChips">
-            <div class="chip active" data-time="早饭前">早饭前</div><div class="chip" data-time="早饭后">早饭后</div>
-            <div class="chip" data-time="午饭前">午饭前</div><div class="chip" data-time="午饭后">午饭后</div>
-            <div class="chip" data-time="晚饭前">晚饭前</div><div class="chip" data-time="晚饭后">晚饭后</div>
-            <div class="chip" data-time="睡前">睡前</div>
-          </div>
-          <button class="action-btn btn-pill-add" onclick="addPill()">＋ 添加</button>
-        </div>
-        <button class="reset-link" style="margin-top:4px" onclick="resetPills()">重置今日打卡</button>
-        <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('pill')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">吃药提醒</span><span class="reminder-bar-summary" id="rbs-pill"></span><span class="reminder-chevron" id="chev-pill">▾</span></div><div class="reminder-body" id="rbody-pill"><div class="perm-notice" id="perm-pill" style="display:none"></div><div class="reminder-time-rows" id="rrows-pill"></div><button class="add-time-btn" onclick="addReminderTime('pill')">＋ 添加时间</button></div></div>
-      </div>
-
+      <div class="drops-row" id="dropsRow"></div>
+      <button class="action-btn btn-water" id="drinkBtn" onclick="handleDrink(event)">我喝水啦</button>
+      <div class="complete-msg" id="completeMsg">✦ 今天水分已满！身体感谢你 ✦</div>
+      <button class="reset-link" onclick="resetWater()">重置</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('water')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">喝水提醒</span><span class="reminder-bar-summary" id="rbs-water"></span><span class="reminder-chevron" id="chev-water">▾</span></div><div class="reminder-body" id="rbody-water"><div class="perm-notice" id="perm-water" style="display:none"></div><div class="reminder-time-rows" id="rrows-water"></div><button class="add-time-btn" onclick="addReminderTime('water')">＋ 添加时间</button></div></div>
     </div>
-  </div><!-- /header-card -->
 
-  <!-- ── Todo card ── -->
-  <div class="todo-card">
-    <div class="tc-header">
-      <div class="tc-title">今日三件事</div>
-      <div class="tc-count" id="todoCount">0 / 3 完成</div>
+    <!-- Sleep -->
+    <div class="panel" id="panel-sleep">
+      <div class="sleep-display">
+        <div><div style="font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin-bottom:4px;">昨晚睡了</div><div class="sleep-duration" id="sleepDuration">— <span>小时</span></div></div>
+        <div><div class="quality-label">睡眠质量</div><div class="quality-stars" id="qualityStars"></div></div>
+      </div>
+      <div class="time-inputs">
+        <div class="time-field"><div class="time-label">入睡时间</div><input type="time" class="time-input" id="sleepStart" value="23:00"/></div>
+        <div class="time-field"><div class="time-label">起床时间</div><input type="time" class="time-input" id="sleepEnd" value="07:00"/></div>
+      </div>
+      <div class="sleep-history"><div class="history-label">近七日睡眠</div><div class="history-bars" id="historyBars"></div></div>
+      <button class="action-btn btn-sleep" onclick="saveSleep()">记录今日睡眠</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('sleep')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">睡眠提醒</span><span class="reminder-bar-summary" id="rbs-sleep"></span><span class="reminder-chevron" id="chev-sleep">▾</span></div><div class="reminder-body" id="rbody-sleep"><div class="perm-notice" id="perm-sleep" style="display:none"></div><div class="reminder-time-rows" id="rrows-sleep"></div><button class="add-time-btn" onclick="addReminderTime('sleep')">＋ 添加时间</button></div></div>
     </div>
-    <div class="tc-list" id="todoList"></div>
-    <div class="tc-motivation" id="todoMotivation"></div>
-    <button class="tc-reset" onclick="resetTodo()">重置今日清单</button>
+
+    <!-- Pill -->
+    <div class="panel" id="panel-pill">
+      <div class="pill-list" id="pillList"></div>
+      <div class="pill-add-area">
+        <input type="text" class="pill-name-input" id="pillNameInput" placeholder="添加药物 / 维生素名称" maxlength="12"/>
+        <div class="time-chips-label">服用时间</div>
+        <div class="time-chips" id="timeChips">
+          <div class="chip active" data-time="早饭前">早饭前</div><div class="chip" data-time="早饭后">早饭后</div>
+          <div class="chip" data-time="午饭前">午饭前</div><div class="chip" data-time="午饭后">午饭后</div>
+          <div class="chip" data-time="晚饭前">晚饭前</div><div class="chip" data-time="晚饭后">晚饭后</div>
+          <div class="chip" data-time="睡前">睡前</div>
+        </div>
+        <button class="action-btn btn-pill-add" onclick="addPill()">＋ 添加</button>
+      </div>
+      <button class="reset-link" style="margin-top:4px" onclick="resetPills()">重置今日打卡</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('pill')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">吃药提醒</span><span class="reminder-bar-summary" id="rbs-pill"></span><span class="reminder-chevron" id="chev-pill">▾</span></div><div class="reminder-body" id="rbody-pill"><div class="perm-notice" id="perm-pill" style="display:none"></div><div class="reminder-time-rows" id="rrows-pill"></div><button class="add-time-btn" onclick="addReminderTime('pill')">＋ 添加时间</button></div></div>
+    </div>
   </div>
 
+  <!-- Todo -->
+  <div class="card card-todo">
+    <div class="tc-pad">
+      <div class="tc-header">
+        <div class="tc-title">今日三件事</div>
+        <div class="tc-count" id="todoCount">0 / 3 完成</div>
+      </div>
+      <div class="tc-list" id="todoList"></div>
+      <div class="tc-motivation" id="todoMotivation"></div>
+      <button class="tc-reset" onclick="resetTodo()">重置今日清单</button>
+    </div>
+  </div>
 
   <div class="app-footer" id="footerDate"></div>
 </div>
 
-<div class="a2hs-banner" id="a2hsBanner">
-  <span class="a2hs-close" onclick="dismissA2HS()">✕</span>
-  点击底部 <strong>分享</strong> 按钮，然后选择<br>「添加到主屏幕」，体验更像原生 App ✦
+<div class="a2hs" id="a2hs">
+  <span class="a2hs-x" onclick="dismissA2HS()">✕</span>
+  点击底部 <strong>分享</strong> 按钮，然后选择<br>「添加到主屏幕」体验更像原生 App ✦
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- ── AI Floating Ball ── -->
-<div class="ai-fab" id="aiFab">
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="rgba(255,255,255,0.95)"/>
-    <circle cx="9" cy="11" r="1.1" fill="rgba(107,158,120,0.8)"/>
-    <circle cx="12" cy="11" r="1.1" fill="rgba(107,158,120,0.8)"/>
-    <circle cx="15" cy="11" r="1.1" fill="rgba(107,158,120,0.8)"/>
-  </svg>
-</div>
-
-<!-- ── AI Chat Panel ── -->
-<div class="ai-panel" id="aiPanel">
-  <div class="ai-panel-header">
-    <div class="ai-panel-icon">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="white"/></svg>
-    </div>
-    <div style="flex:1">
-      <div class="ai-panel-title">健康助手</div>
-      <div class="ai-panel-sub">专注于你的健康生活</div>
-    </div>
-    <div class="ai-dot"></div>
-    <button class="ai-close" onclick="closeAI()">✕</button>
-  </div>
-  <div class="ai-suggestions" id="aiSuggestions">
-    <div class="ai-chip" onclick="sendSuggestion(this)">每天喝多少水合适？</div>
-    <div class="ai-chip" onclick="sendSuggestion(this)">怎么改善睡眠？</div>
-    <div class="ai-chip" onclick="sendSuggestion(this)">推荐补充哪些维生素？</div>
-    <div class="ai-chip" onclick="sendSuggestion(this)">如何建立健康作息？</div>
-  </div>
-  <div class="ai-messages" id="aiMessages"></div>
-  <div class="ai-input-row">
-    <textarea class="ai-input" id="aiInput" placeholder="问我任何健康问题…" rows="1"
-      oninput="autoResizeAI(this)"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI();}"></textarea>
-    <button class="ai-send" id="aiSend" onclick="sendAI()">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
-  <div class="ai-disclaimer">仅供参考，不构成医疗建议。如有需要请咨询专业医生。</div>
-</div>
-
 <script>
+
 const $ = id => document.getElementById(id);
 const today = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'short'});
 $('dateLabel').textContent = today;
@@ -887,15 +835,19 @@ function toggleAI() { aiPanelOpen ? closeAI() : openAI(); }
 
 function openAI() {
   aiPanelOpen = true;
+  const panel = $('aiPanel');
+  panel.style.display = 'flex';
   positionPanel();
-  $('aiPanel').classList.add('open');
+  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
   if (aiHistory.length === 0) showAIWelcome();
-  setTimeout(() => { const m = $('aiMessages'); m.scrollTop = m.scrollHeight; }, 120);
+  setTimeout(() => { const m = $('aiMessages'); if(m) m.scrollTop = m.scrollHeight; }, 150);
 }
 
 function closeAI() {
   aiPanelOpen = false;
-  $('aiPanel').classList.remove('open');
+  const panel = $('aiPanel');
+  panel.classList.remove('open');
+  setTimeout(() => { if(!aiPanelOpen) panel.style.display = 'none'; }, 250);
 }
 
 // Close when clicking outside
@@ -962,7 +914,7 @@ function addAIMessage(role,text){
 }
 
 
-</script>
 
+</script>
 </body>
 </html>
