@@ -669,7 +669,7 @@ function getPhrase(code){
 
 function fetchWeatherGeo(){
   if(!navigator.geolocation){ showWeatherError('浏览器不支持定位'); return; }
-  $('weatherLoading') && ($('weatherLoading').textContent='📍 正在定位…');
+  $('weatherInner') && ($('weatherInner').textContent='📍 正在定位…');
   navigator.geolocation.getCurrentPosition(
     pos=>fetchWeatherData(pos.coords.latitude,pos.coords.longitude),
     err=>{ const m={1:'位置权限被拒绝，请在设置中开启',2:'无法获取位置',3:'定位超时'}; showWeatherError(m[err.code]||'定位失败'); },
@@ -678,7 +678,7 @@ function fetchWeatherGeo(){
 }
 
 async function fetchWeatherData(lat,lon){
-  const lo=$('weatherLoading'); if(lo)lo.textContent='🌐 获取天气中…';
+  const lo=$('weatherInner'); if(lo)lo.textContent='🌐 获取天气中…';
   try{
     const [wr,gr]=await Promise.all([
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`),
@@ -864,7 +864,7 @@ function openAI() {
   positionPanel();
   requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
   if (aiHistory.length === 0) showAIWelcome();
-  setTimeout(() => { const m = $('aiMessages'); if(m) m.scrollTop = m.scrollHeight; }, 150);
+  setTimeout(() => { const m = $('aiMsgs'); if(m) m.scrollTop = m.scrollHeight; }, 150);
 }
 
 function closeAI() {
@@ -879,6 +879,24 @@ document.addEventListener('pointerdown', e => {
   if (aiPanelOpen && !$('aiPanel').contains(e.target) && !fab.contains(e.target)) closeAI();
 });
 
+// Close button
+$('aiCloseBtn').addEventListener('click', e => { e.stopPropagation(); closeAI(); });
+
+// Send button
+$('aiSendBtn').addEventListener('click', e => { e.stopPropagation(); sendAI(); });
+
+// Input: Enter to send (Shift+Enter for newline), auto-resize while typing
+const aiInputEl = $('aiInput');
+aiInputEl.addEventListener('input', () => autoResizeAI(aiInputEl));
+aiInputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAI(); }
+});
+
+// Suggestion chips (delegated — chips are static, but bind directly since they never change)
+document.querySelectorAll('.ai-chip').forEach(chip => {
+  chip.addEventListener('click', e => { e.stopPropagation(); sendSuggestion(chip); });
+});
+
 function showAIWelcome(){
   addAIMessage('ai','你好！我是你的健康助手 🌿 可以问我饮水、睡眠、营养、运动等健康问题。');
 }
@@ -890,7 +908,7 @@ function autoResizeAI(el){
 
 function sendSuggestion(el){
   $('aiInput').value = el.textContent;
-  if(!suggestionsDismissed){ $('aiSuggestions').style.display='none'; suggestionsDismissed=true; }
+  if(!suggestionsDismissed){ $('aiSugg').style.display='none'; suggestionsDismissed=true; }
   sendAI();
 }
 
@@ -899,10 +917,10 @@ async function sendAI(){
   const text=input.value.trim();
   if(!text||aiTyping)return;
   input.value=''; input.style.height='auto';
-  $('aiSend').disabled=true; aiTyping=true;
+  $('aiSendBtn').disabled=true; aiTyping=true;
   addAIMessage('user',text);
   aiHistory.push({role:'user',content:text});
-  const msgs=$('aiMessages');
+  const msgs=$('aiMsgs');
   setTimeout(()=>{ msgs.scrollTop=msgs.scrollHeight; },50);
   const tid='typing-'+Date.now();
   const tel=document.createElement('div'); tel.className='msg msg-ai'; tel.id=tid;
@@ -924,12 +942,12 @@ async function sendAI(){
     const te=$(tid); if(te)te.remove();
     addAIMessage('ai','网络出现了点问题，请稍后再试 🙏');
   }
-  aiTyping=false; $('aiSend').disabled=false;
+  aiTyping=false; $('aiSendBtn').disabled=false;
   setTimeout(()=>{ msgs.scrollTop=msgs.scrollHeight; },50);
 }
 
 function addAIMessage(role,text){
-  const msgs=$('aiMessages');
+  const msgs=$('aiMsgs');
   const now=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
   const div=document.createElement('div'); div.className=`msg msg-${role}`;
   div.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${now}</div>`;
