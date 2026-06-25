@@ -9,7 +9,8 @@ exports.handler = async (event) => {
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    return json(500, { error: 'Missing DEEPSEEK_API_KEY on Netlify' });
+    console.error('Missing DEEPSEEK_API_KEY on Netlify');
+    return json(500, { error: { message: 'Missing DEEPSEEK_API_KEY on Netlify' } });
   }
 
   let payload;
@@ -37,18 +38,18 @@ exports.handler = async (event) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-flash',
+        model: 'deepseek-chat',
         max_tokens: 800,
         temperature: 0.6,
-        thinking: { type: 'disabled' },
         messages: [{ role: 'system', content: system }, ...safeMessages],
       }),
     });
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
+      console.error('DeepSeek API error', response.status, JSON.stringify(data).slice(0, 1000));
       return json(response.status, {
-        error: data.error?.message || data.message || `DeepSeek HTTP ${response.status}`,
+        error: { message: data.error?.message || data.message || `DeepSeek HTTP ${response.status}` },
       });
     }
 
@@ -62,7 +63,8 @@ exports.handler = async (event) => {
       ],
     });
   } catch (error) {
-    return json(502, { error: error.message || 'DeepSeek request failed' });
+    console.error('DeepSeek request failed', error);
+    return json(502, { error: { message: error.message || 'DeepSeek request failed' } });
   }
 };
 

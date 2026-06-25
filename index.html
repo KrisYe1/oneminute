@@ -953,7 +953,7 @@ async function sendAI(){
       })
     });
     const data=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(data.error?.message||data.message||`HTTP ${res.status}`);
+    if(!res.ok)throw new Error((typeof data.error==='string'?data.error:data.error?.message)||data.message||`HTTP ${res.status}`);
     const reply=data.choices?.[0]?.message?.content||'抱歉，暂时无法回答，请稍后再试。';
     aiHistory.push({role:'assistant',content:reply});
     const te=$(tid); if(te)te.remove();
