@@ -491,15 +491,16 @@ let reminders=JSON.parse(localStorage.getItem('onemin_r5')||JSON.stringify({
   pill: [{id:'p1',time:'08:00',enabled:true}],
 }));
 function saveReminders(){ localStorage.setItem('onemin_r5',JSON.stringify(reminders)); }
+const notificationSupported = 'Notification' in window && typeof Notification.requestPermission === 'function';
 let lastFired=JSON.parse(localStorage.getItem('onemin_lf5')||'{}');
 function checkNotifs(){
-  if(Notification.permission!=='granted')return;
+  if(!notificationSupported || Notification.permission!=='granted')return;
   const now=new Date(),hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,ds=now.toDateString();
   ['water','sleep','pill'].forEach(type=>{
     reminders[type].forEach(r=>{
       if(!r.enabled)return;
       const key=`${type}-${r.id}-${ds}-${r.time}`;
-      if(r.time===hhmm&&!lastFired[key]){ lastFired[key]=true; localStorage.setItem('onemin_lf5',JSON.stringify(lastFired)); new Notification(NOTIF_MSGS[type].title,{body:NOTIF_MSGS[type].body}); }
+      if(r.time===hhmm&&!lastFired[key]){ lastFired[key]=true; localStorage.setItem('onemin_lf5',JSON.stringify(lastFired)); try{ new Notification(NOTIF_MSGS[type].title,{body:NOTIF_MSGS[type].body}); }catch(e){} }
     });
   });
 }
@@ -513,12 +514,24 @@ function toggleReminder(type){
   if(openBars[type]){ renderPermNotice(type); renderReminderRows(type); }
 }
 function renderPermNotice(type){
-  const el=$(`perm-${type}`),p=Notification.permission;
+  const el=$(`perm-${type}`);
+  if(!notificationSupported){
+    el.innerHTML='<span class="perm-notice-text">当前浏览器不支持网页通知，其他功能可正常使用。</span>';
+    el.style.display='flex';
+    return;
+  }
+  const p=Notification.permission;
   if(p==='granted'){el.style.display='none';return;}
   el.innerHTML=p==='denied'?`<span class="perm-notice-text">通知权限已拒绝，请在设置中手动开启。</span>`:`<span class="perm-notice-text">开启通知，时间到自动提醒你。</span><button class="perm-grant-btn" onclick="requestPerm('${type}')">开启</button>`;
   el.style.display='flex';
 }
-function requestPerm(type){ Notification.requestPermission().then(p=>{ renderPermNotice(type); showToast(p==='granted'?'✦ 通知权限已开启':'未能获得权限'); }); }
+function requestPerm(type){
+  if(!notificationSupported){ showToast('当前浏览器不支持网页通知'); return; }
+  Promise.resolve(Notification.requestPermission()).then(p=>{
+    renderPermNotice(type);
+    showToast(p==='granted'?'✓ 通知权限已开启':'未能获得权限');
+  }).catch(()=>showToast('未能获得权限'));
+}
 function renderReminderRows(type){
   const c=$(`rrows-${type}`); c.innerHTML='';
   reminders[type].forEach(r=>{
