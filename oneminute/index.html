@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="OneMinute"/>
+  <title>OneMinute · 每日健康</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --cream:#f5f0e8;--cream-dark:#ede6d6;
+      --sage:#8aab8a;
+      --ink:#3d3530;--ink-light:#7a6f68;
+      --water:#7bafc4;
+      --sleep:#9b8ec4;--sleep-light:#c4bce0;
+      --pill:#c4956f;--pill-light:#ddb99a;
+      --gold:#c4a96f;
+      --todo:#d4826e;
+      --weather:#5a9e8f;
+      --sb:env(safe-area-inset-bottom,0px);
+      --st:env(safe-area-inset-top,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;}
+    body{
+      background:var(--cream);
+      font-family:'Noto Sans SC',sans-serif;
+      color:var(--ink);
+      height:100dvh;
+      overflow:hidden;
+      position:fixed;
+      inset:0;
+      -webkit-tap-highlight-color:transparent;
+    }
+    /* All scrollable page content lives in this wrapper instead of body itself.
+       Keeping body non-scrolling avoids an iOS Safari bug where fixed-position
+       children of a scrolling body silently stop receiving touch events
+       inside a normal browser tab (this does not happen in standalone/PWA
+       mode, which is why "Add to Home Screen" appeared to fix it). */
+    .page-scroll{
+      height:100%;
+      width:100%;
+      display:flex;flex-direction:column;align-items:center;
+      overflow-x:hidden;overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      padding:calc(var(--st) + 14px) 14px calc(var(--sb) + 90px);
+    }
+
+    /* Background orbs — pointer-events:none to never block taps */
+    .bg-orb{position:fixed;border-radius:50%;filter:blur(60px);opacity:.17;pointer-events:none;z-index:0;}
+    .orb-1{width:300px;height:300px;top:-80px;right:-60px;background:radial-gradient(circle,#a8cdd9,transparent);}
+    .orb-2{width:220px;height:220px;bottom:-40px;left:-40px;background:radial-gradient(circle,#b5ceb5,transparent);}
+    .orb-3{width:150px;height:150px;top:50%;left:55%;opacity:.07;background:radial-gradient(circle,var(--gold),transparent);}
+
+    /* App wrapper — position:relative so children stack correctly */
+    .app{position:relative;z-index:1;width:100%;max-width:440px;display:flex;flex-direction:column;gap:10px;}
+
+    /* Cards — NO backdrop-filter on mobile (causes stacking context bugs in Safari) */
+    .card{
+      background:rgba(255,250,242,.94);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:0 2px 0 rgba(196,169,111,.09),0 8px 32px rgba(61,53,48,.07);
+    }
+    .card-weather{border:1px solid rgba(90,158,143,.16);}
+    .card-tracker{border:1px solid rgba(196,169,111,.13);}
+    .card-todo{border:1px solid rgba(212,130,110,.13);}
+
+    /* Header */
+    .app-header{padding:20px 20px 0;display:flex;flex-direction:column;align-items:center;}
+    .app-title{font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--ink);}
+    .app-date{font-size:11px;font-weight:300;letter-spacing:.18em;color:var(--ink-light);margin-top:3px;}
+
+    /* Tabs */
+    .tab-bar{display:flex;margin:16px 16px 0;background:var(--cream-dark);border-radius:100px;padding:4px;gap:2px;}
+    .tab-btn{flex:1;border:none;background:none;border-radius:100px;padding:10px 6px;font-family:inherit;font-size:11px;font-weight:300;letter-spacing:.04em;color:var(--ink-light);cursor:pointer;transition:background .25s,color .25s,box-shadow .25s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;-webkit-user-select:none;user-select:none;}
+    .tab-btn.active{background:#fff9f0;color:var(--ink);box-shadow:0 2px 8px rgba(61,53,48,.08);}
+
+    /* Panels */
+    .panel{display:none;padding:18px 18px 16px;flex-direction:column;align-items:center;animation:fadeUp .28s ease;}
+    .panel.active{display:flex;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Water */
+    .ring-container{position:relative;width:150px;height:150px;margin-bottom:14px;}
+    .ring-svg{width:150px;height:150px;transform:rotate(-90deg);}
+    .ring-track{fill:none;stroke:var(--cream-dark);stroke-width:9;}
+    .ring-progress{fill:none;stroke:var(--water);stroke-width:9;stroke-linecap:round;stroke-dasharray:402;stroke-dashoffset:402;transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1),stroke .5s;filter:drop-shadow(0 0 5px rgba(123,175,196,.4));}
+    .ring-progress.complete{stroke:var(--sage);}
+    .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+    .count-text{font-size:30px;font-weight:300;line-height:1;color:var(--ink);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+    .count-text.bump{transform:scale(1.2);}
+    .unit-text{font-size:10px;letter-spacing:.14em;color:var(--ink-light);font-weight:300;}
+    .drops-row{display:flex;gap:5px;margin-bottom:14px;}
+    .drop{width:13px;height:16px;}
+    .drop svg{width:13px;height:16px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+    .drop.filled svg{transform:scale(1.1);}
+    .drop.just-filled svg{animation:dropPop .4s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes dropPop{0%{transform:scale(1)}50%{transform:scale(1.4) translateY(-3px)}100%{transform:scale(1.1)}}
+    .complete-msg{margin-top:8px;font-size:11px;letter-spacing:.1em;color:var(--sage);font-weight:300;opacity:0;transform:translateY(4px);transition:opacity .5s,transform .5s;height:15px;}
+    .complete-msg.visible{opacity:1;transform:translateY(0);}
+
+    /* Sleep */
+    .sleep-display{width:100%;background:rgba(155,142,196,.08);border:1px solid rgba(155,142,196,.18);border-radius:14px;padding:14px 15px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+    .sleep-duration{font-size:34px;font-weight:300;color:var(--sleep);letter-spacing:-.02em;line-height:1;}
+    .sleep-duration span{font-size:12px;color:var(--ink-light);font-weight:300;margin-left:1px;}
+    .quality-label{font-size:10px;letter-spacing:.1em;color:var(--ink-light);font-weight:300;margin-bottom:5px;text-align:right;}
+    .quality-stars{display:flex;gap:6px;}
+    .star{width:16px;height:16px;border-radius:50%;background:var(--cream-dark);transition:background .3s;cursor:pointer;}
+    .star.lit{background:var(--sleep);}
+    .time-inputs{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .time-field{display:flex;flex-direction:column;gap:4px;}
+    .time-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;}
+    .time-input{background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:9px;padding:11px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
+    .time-input:focus{border-color:var(--sleep-light);}
+    .sleep-history{width:100%;margin-bottom:8px;}
+    .history-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin-bottom:6px;}
+    .history-bars{display:flex;align-items:flex-end;gap:4px;height:34px;}
+    .bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+    .bar{width:100%;border-radius:3px 3px 0 0;background:var(--sleep-light);transition:height .5s cubic-bezier(.4,0,.2,1);min-height:3px;}
+    .bar.today{background:var(--sleep);}
+    .bar-day{font-size:8px;color:var(--ink-light);font-weight:300;}
+
+    /* Pill */
+    .pill-list{width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+    .pill-item{display:flex;align-items:center;gap:10px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+    .pill-item.taken{background:rgba(196,149,111,.07);border-color:rgba(196,149,111,.3);}
+    .pill-check{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--cream-dark);display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
+    .pill-item.taken .pill-check{background:var(--pill);border-color:var(--pill);color:white;transform:scale(1.1);}
+    .pill-info{flex:1;min-width:0;}
+    .pill-name{font-size:13px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pill-time{font-size:10px;font-weight:300;color:var(--ink-light);margin-top:1px;}
+    .pill-emoji{font-size:16px;flex-shrink:0;}
+    .pill-add-area{width:100%;background:rgba(255,252,245,.7);border:1px solid var(--cream-dark);border-radius:13px;padding:11px 12px 10px;display:flex;flex-direction:column;margin-bottom:4px;}
+    .pill-name-input{background:#fffaf3;border:1px solid var(--cream-dark);border-radius:8px;padding:10px 10px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;}
+    .pill-name-input:focus{border-color:var(--pill-light);}
+    .pill-name-input::placeholder{color:var(--ink-light);opacity:.45;}
+    .time-chips-label{font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin:8px 0 5px;}
+    .time-chips{display:flex;flex-wrap:wrap;gap:6px;}
+    .chip{padding:7px 13px;border-radius:100px;font-size:11px;font-weight:300;color:var(--ink-light);background:var(--cream-dark);cursor:pointer;-webkit-user-select:none;user-select:none;}
+    .chip.active{background:var(--pill);color:white;}
+
+    /* Reminder bar */
+    .reminder-bar{width:100%;margin-top:10px;background:rgba(255,250,242,.8);border:1px solid var(--cream-dark);border-radius:12px;overflow:hidden;}
+    .reminder-bar-header{display:flex;align-items:center;gap:7px;padding:12px 12px;cursor:pointer;min-height:44px;-webkit-user-select:none;user-select:none;}
+    .reminder-bell{font-size:13px;flex-shrink:0;}
+    .reminder-bar-title{font-size:11px;font-weight:300;letter-spacing:.08em;color:var(--ink-light);flex:1;opacity:.7;}
+    .reminder-bar-summary{font-size:10px;font-weight:300;color:var(--ink-light);opacity:.5;max-width:55%;text-align:right;}
+    .reminder-chevron{font-size:9px;color:var(--ink-light);opacity:.4;transition:transform .3s;flex-shrink:0;}
+    .reminder-chevron.open{transform:rotate(180deg);}
+    .reminder-body{padding:0 12px;max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1),padding .3s;}
+    .reminder-body.open{max-height:400px;padding:0 12px 11px;}
+    .perm-notice{display:flex;align-items:center;gap:7px;background:rgba(155,142,196,.08);border:1px solid rgba(155,142,196,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+    .perm-notice-text{font-size:11px;font-weight:300;color:var(--ink-light);flex:1;line-height:1.5;}
+    .perm-grant-btn{padding:6px 12px;border-radius:100px;background:var(--sleep);border:none;color:white;font-family:inherit;font-size:11px;font-weight:300;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+    .reminder-time-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
+    .reminder-time-row{display:flex;align-items:center;gap:7px;background:rgba(255,252,245,.9);border:1px solid var(--cream-dark);border-radius:8px;padding:9px 10px;}
+    .rtr-time{flex:1;background:none;border:none;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;cursor:pointer;min-width:0;-webkit-appearance:none;}
+    .toggle{position:relative;width:34px;height:20px;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;position:absolute;}
+    .toggle-slider{position:absolute;inset:0;border-radius:100px;background:var(--cream-dark);cursor:pointer;transition:background .3s;}
+    .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+    .toggle input:checked+.toggle-slider{background:var(--sage);}
+    .toggle input:checked+.toggle-slider::before{transform:translateX(14px);}
+    .rtr-del{background:none;border:none;color:var(--ink-light);opacity:.25;cursor:pointer;font-size:14px;padding:6px;flex-shrink:0;}
+    .rtr-del:active{opacity:.7;}
+    .add-time-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;background:none;border:1px dashed var(--cream-dark);border-radius:8px;padding:9px;font-family:inherit;font-size:11px;font-weight:300;color:var(--ink-light);cursor:pointer;letter-spacing:.05em;}
+    .add-time-btn:active{border-color:var(--gold);color:var(--ink);}
+
+    /* Buttons */
+    .action-btn{position:relative;padding:14px 0;width:100%;border:none;border-radius:100px;color:white;font-family:inherit;font-size:13px;font-weight:300;letter-spacing:.14em;cursor:pointer;outline:none;overflow:hidden;-webkit-user-select:none;user-select:none;}
+    .action-btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.14);opacity:0;border-radius:inherit;}
+    .action-btn:active::before{opacity:1;}
+    .action-btn:active{transform:scale(.97);}
+    .btn-water{background:var(--water);box-shadow:0 3px 14px rgba(123,175,196,.35);}
+    .btn-water.done{background:var(--sage);cursor:default;}
+    .btn-water.done:active{transform:none;}
+    .btn-sleep{background:var(--sleep);box-shadow:0 3px 14px rgba(155,142,196,.35);}
+    .btn-pill-add{background:var(--pill);box-shadow:0 3px 14px rgba(196,149,111,.3);font-size:12px;letter-spacing:.1em;margin-top:8px;}
+    .reset-link{margin-top:6px;font-size:11px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;padding:5px 0;display:block;}
+    .reset-link:active{opacity:.65;}
+
+    /* Weather */
+    .wm-pad{padding:16px 18px;}
+    .wm-top{display:flex;align-items:center;gap:0;margin-bottom:12px;}
+    .wm-icon{font-size:42px;line-height:1;margin-right:10px;flex-shrink:0;}
+    .wm-temp{font-size:36px;font-weight:300;color:var(--weather);line-height:1;letter-spacing:-.02em;}
+    .wm-temp span{font-size:14px;font-weight:300;color:var(--ink-light);}
+    .wm-desc{font-size:12px;font-weight:300;color:var(--ink-light);margin-top:3px;}
+    .wm-right{margin-left:auto;text-align:right;}
+    .wm-city{font-size:13px;font-weight:400;color:var(--ink);}
+    .wm-phrase{font-size:11px;font-weight:300;color:var(--weather);font-style:italic;line-height:1.5;max-width:120px;}
+    .wm-details{display:flex;gap:6px;margin-bottom:12px;}
+    .wm-detail{flex:1;background:rgba(90,158,143,.06);border:1px solid rgba(90,158,143,.1);border-radius:9px;padding:8px 8px;}
+    .wmd-label{font-size:9px;font-weight:300;color:var(--ink-light);letter-spacing:.08em;}
+    .wmd-val{font-size:13px;font-weight:300;color:var(--ink);}
+    .wm-forecast{display:flex;gap:5px;}
+    .wm-fc{flex:1;background:rgba(255,252,245,.7);border:1px solid rgba(90,158,143,.1);border-radius:8px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+    .wm-fc-day{font-size:9px;font-weight:300;color:var(--ink-light);}
+    .wm-fc-icon{font-size:16px;}
+    .wm-fc-temp{font-size:10px;font-weight:300;color:var(--ink);}
+    .wm-loading{font-size:12px;font-weight:300;color:var(--ink-light);letter-spacing:.08em;text-align:center;padding:20px 0;}
+    .wm-error{font-size:11px;font-weight:300;color:var(--ink-light);text-align:center;line-height:1.7;padding:8px 0;}
+    .wm-retry{display:block;margin-top:8px;width:100%;padding:10px;background:none;border:1px dashed rgba(90,158,143,.3);border-radius:8px;font-family:inherit;font-size:11px;font-weight:300;color:var(--weather);cursor:pointer;letter-spacing:.06em;}
+
+    /* Todo */
+    .tc-pad{padding:16px 18px;}
+    .tc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .tc-title{font-size:13px;font-weight:300;letter-spacing:.1em;color:var(--ink);}
+    .tc-count{font-size:11px;font-weight:300;color:var(--ink-light);letter-spacing:.04em;}
+    .tc-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+    .tc-item{display:flex;align-items:flex-start;gap:9px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;transition:opacity .3s;}
+    .tc-item.done-item{opacity:.46;}
+    .tc-item.done-item .tc-input{text-decoration:line-through;color:var(--ink-light);}
+    .tc-num{width:20px;height:20px;border-radius:50%;background:var(--cream-dark);font-size:10px;font-weight:400;color:var(--ink-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:background .3s,color .3s;}
+    .tc-item.done-item .tc-num{background:var(--todo);color:white;}
+    .tc-input-wrap{flex:1;min-width:0;}
+    .tc-input{width:100%;background:none;border:none;font-family:inherit;font-size:14px;font-weight:300;color:var(--ink);outline:none;line-height:1.45;-webkit-appearance:none;resize:none;overflow:hidden;}
+    .tc-input::placeholder{color:var(--ink-light);opacity:.38;}
+    .tc-check{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);-webkit-user-select:none;user-select:none;}
+    .tc-item.done-item .tc-check{background:var(--todo);border-color:var(--todo);color:white;transform:scale(1.05);}
+    .tc-motivation{font-size:11px;font-weight:300;letter-spacing:.06em;color:var(--ink-light);text-align:center;padding:6px 0 2px;line-height:1.65;}
+    .tc-motivation.all-done{color:var(--todo);}
+    .tc-reset{display:block;margin:6px auto 0;font-size:10px;letter-spacing:.1em;color:var(--ink-light);opacity:.3;cursor:pointer;border:none;background:none;font-family:inherit;padding:4px 8px;}
+
+    /* AI Floating Ball */
+    .ai-fab{
+      position:fixed;
+      right:20px;
+      bottom:calc(env(safe-area-inset-bottom,0px) + 28px);
+      width:54px;height:54px;border-radius:50%;
+      background:linear-gradient(145deg,#7bafc4,#8aab8a);
+      box-shadow:0 4px 20px rgba(61,53,48,.2),0 1px 4px rgba(61,53,48,.12);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      z-index:100;
+      /* NO touch-action:none here — let the browser handle it */
+      -webkit-user-select:none;user-select:none;
+    }
+    .ai-fab svg{width:24px;height:24px;}
+    .ai-fab::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(123,175,196,.3);animation:fabPulse 3s ease infinite;pointer-events:none;}
+    @keyframes fabPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:0;transform:scale(1.2)}}
+
+    /* AI Chat Panel */
+    .ai-panel{
+      position:fixed;
+      z-index:101;
+      width:min(340px,calc(100vw - 28px));
+      max-height:min(520px,75dvh);
+      background:rgba(250,247,241,.97);
+      border:1px solid rgba(196,169,111,.14);
+      border-radius:24px;
+      box-shadow:0 8px 48px rgba(61,53,48,.14),0 2px 8px rgba(61,53,48,.08);
+      display:none;flex-direction:column;overflow:hidden;
+      opacity:0;
+      transform:scale(.92) translateY(8px);
+      transition:opacity .22s ease,transform .22s cubic-bezier(.34,1.3,.64,1);
+    }
+    .ai-panel.open{display:flex;opacity:1;transform:scale(1) translateY(0);}
+    .ai-ph{display:flex;align-items:center;gap:10px;padding:13px 15px 11px;border-bottom:1px solid var(--cream-dark);flex-shrink:0;}
+    .ai-ph-icon{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#8aab8a,#7bafc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .ai-ph-icon svg{width:15px;height:15px;}
+    .ai-ph-title{flex:1;font-size:13px;font-weight:400;color:var(--ink);letter-spacing:.06em;}
+    .ai-ph-sub{font-size:10px;font-weight:300;color:var(--ink-light);margin-top:1px;}
+    .ai-dot{width:7px;height:7px;border-radius:50%;background:#8aab8a;flex-shrink:0;}
+    .ai-close-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--ink-light);flex-shrink:0;}
+    .ai-sugg{padding:9px 13px 5px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;}
+    .ai-chip{padding:5px 11px;border-radius:100px;background:rgba(107,158,120,.08);border:1px solid rgba(107,158,120,.18);font-size:11px;font-weight:300;color:#5a8a64;cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap;}
+    .ai-chip:active{background:rgba(107,158,120,.18);}
+    .ai-msgs{flex:1;overflow-y:auto;padding:6px 13px 6px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .ai-msgs::-webkit-scrollbar{display:none;}
+    .msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .2s ease;}
+    @keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .msg-user{align-items:flex-end;}
+    .msg-ai{align-items:flex-start;}
+    .msg-bubble{max-width:88%;padding:9px 12px;border-radius:15px;font-size:13px;font-weight:300;line-height:1.6;}
+    .msg-user .msg-bubble{background:linear-gradient(135deg,#8aab8a,#7bafc4);color:white;border-bottom-right-radius:4px;}
+    .msg-ai .msg-bubble{background:rgba(107,158,120,.09);border:1px solid rgba(107,158,120,.14);color:var(--ink);border-bottom-left-radius:4px;}
+    .msg-time{font-size:9px;font-weight:300;color:var(--ink-light);opacity:.4;padding:0 3px;}
+    .typing-bubble{display:flex;align-items:center;gap:4px;padding:9px 12px;}
+    .typing-dot{width:5px;height:5px;border-radius:50%;background:rgba(107,158,120,.5);animation:typingBounce 1.2s ease infinite;}
+    .typing-dot:nth-child(2){animation-delay:.2s;}
+    .typing-dot:nth-child(3){animation-delay:.4s;}
+    @keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+    .ai-input-row{display:flex;align-items:flex-end;gap:7px;padding:9px 12px 12px;border-top:1px solid var(--cream-dark);flex-shrink:0;}
+    .ai-input{flex:1;background:#fffaf3;border:1px solid var(--cream-dark);border-radius:11px;padding:9px 11px;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;resize:none;line-height:1.45;transition:border-color .2s;-webkit-appearance:none;max-height:90px;overflow-y:auto;}
+    .ai-input:focus{border-color:rgba(107,158,120,.4);}
+    .ai-input::placeholder{color:var(--ink-light);opacity:.4;}
+    .ai-send-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8aab8a,#7bafc4);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+    .ai-send-btn:active{transform:scale(.88);}
+    .ai-send-btn:disabled{opacity:.35;}
+    .ai-send-btn svg{width:14px;height:14px;}
+    .ai-disc{padding:0 13px 8px;font-size:9px;font-weight:300;color:var(--ink-light);opacity:.4;text-align:center;}
+
+    /* Shared */
+    .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.28);transform:scale(0);animation:rippleAnim .6s linear;pointer-events:none;}
+    @keyframes rippleAnim{to{transform:scale(4);opacity:0;}}
+    .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(61,53,48,.84);color:rgba(255,252,245,.95);font-size:12px;letter-spacing:.08em;font-weight:300;padding:9px 20px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .a2hs{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+12px);left:50%;transform:translateX(-50%);background:rgba(61,53,48,.88);color:rgba(255,252,245,.92);font-size:11px;font-weight:300;line-height:1.65;padding:10px 16px;border-radius:14px;display:none;z-index:300;max-width:calc(100vw - 28px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.18);pointer-events:none;}
+    .a2hs.show{display:block;pointer-events:auto;}
+    .a2hs-x{float:right;margin-left:10px;opacity:.5;cursor:pointer;pointer-events:auto;}
+    .app-footer{text-align:center;font-size:10px;letter-spacing:.16em;color:var(--ink-light);opacity:.22;font-weight:300;padding:4px 0 2px;}
+  </style>
+</head>
+<body>
+
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+
+<!-- AI Floating Ball — rendered BEFORE script so DOM is ready when JS runs.
+     Lives as a direct child of <body> (which no longer scrolls), so it is
+     always positioned relative to the real viewport and always receives
+     touch events, in both normal browser tabs and standalone/PWA mode. -->
+<div class="ai-fab" id="aiFab">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="rgba(255,255,255,0.96)"/>
+    <circle cx="9" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+    <circle cx="12" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+    <circle cx="15" cy="11" r="1.1" fill="rgba(90,158,143,0.9)"/>
+  </svg>
+</div>
+
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-ph">
+    <div class="ai-ph-icon">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="white"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="ai-ph-title">健康助手</div>
+      <div class="ai-ph-sub">专注于你的健康生活</div>
+    </div>
+    <div class="ai-dot"></div>
+    <button class="ai-close-btn" id="aiCloseBtn">✕</button>
+  </div>
+  <div class="ai-sugg" id="aiSugg">
+    <div class="ai-chip">每天喝多少水合适？</div>
+    <div class="ai-chip">怎么改善睡眠？</div>
+    <div class="ai-chip">推荐补充哪些维生素？</div>
+    <div class="ai-chip">如何建立健康作息？</div>
+  </div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-input-row">
+    <textarea class="ai-input" id="aiInput" placeholder="问我任何健康问题…" rows="1"></textarea>
+    <button class="ai-send-btn" id="aiSendBtn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="ai-disc">仅供参考，不构成医疗建议。如有需要请咨询专业医生。</div>
+</div>
+
+<div class="page-scroll">
+<div class="app">
+
+  <!-- Weather -->
+  <div class="card card-weather" id="weatherCard">
+    <div class="wm-pad" id="weatherInner">
+      <div class="wm-loading">🌤 正在获取天气…</div>
+    </div>
+  </div>
+
+  <!-- Tracker card -->
+  <div class="card card-tracker">
+    <div class="app-header">
+      <div class="app-title">OneMinute</div>
+      <div class="app-date" id="dateLabel"></div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-water" onclick="switchTab('water')">💧 喝水</button>
+      <button class="tab-btn" id="tab-sleep" onclick="switchTab('sleep')">🌙 睡眠</button>
+      <button class="tab-btn" id="tab-pill"  onclick="switchTab('pill')">💊 吃药</button>
+    </div>
+
+    <!-- Water -->
+    <div class="panel active" id="panel-water">
+      <div class="ring-container">
+        <svg class="ring-svg" viewBox="0 0 150 150">
+          <circle class="ring-track" cx="75" cy="75" r="64"/>
+          <circle class="ring-progress" id="ring" cx="75" cy="75" r="64"/>
+        </svg>
+        <div class="ring-center">
+          <div class="count-text" id="countText">0/8</div>
+          <div class="unit-text">杯</div>
+        </div>
+      </div>
+      <div class="drops-row" id="dropsRow"></div>
+      <button class="action-btn btn-water" id="drinkBtn" onclick="handleDrink(event)">我喝水啦</button>
+      <div class="complete-msg" id="completeMsg">✦ 今天水分已满！身体感谢你 ✦</div>
+      <button class="reset-link" onclick="resetWater()">重置</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('water')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">喝水提醒</span><span class="reminder-bar-summary" id="rbs-water"></span><span class="reminder-chevron" id="chev-water">▾</span></div><div class="reminder-body" id="rbody-water"><div class="perm-notice" id="perm-water" style="display:none"></div><div class="reminder-time-rows" id="rrows-water"></div><button class="add-time-btn" onclick="addReminderTime('water')">＋ 添加时间</button></div></div>
+    </div>
+
+    <!-- Sleep -->
+    <div class="panel" id="panel-sleep">
+      <div class="sleep-display">
+        <div><div style="font-size:10px;letter-spacing:.12em;color:var(--ink-light);font-weight:300;margin-bottom:4px;">昨晚睡了</div><div class="sleep-duration" id="sleepDuration">— <span>小时</span></div></div>
+        <div><div class="quality-label">睡眠质量</div><div class="quality-stars" id="qualityStars"></div></div>
+      </div>
+      <div class="time-inputs">
+        <div class="time-field"><div class="time-label">入睡时间</div><input type="time" class="time-input" id="sleepStart" value="23:00"/></div>
+        <div class="time-field"><div class="time-label">起床时间</div><input type="time" class="time-input" id="sleepEnd" value="07:00"/></div>
+      </div>
+      <div class="sleep-history"><div class="history-label">近七日睡眠</div><div class="history-bars" id="historyBars"></div></div>
+      <button class="action-btn btn-sleep" onclick="saveSleep()">记录今日睡眠</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('sleep')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">睡眠提醒</span><span class="reminder-bar-summary" id="rbs-sleep"></span><span class="reminder-chevron" id="chev-sleep">▾</span></div><div class="reminder-body" id="rbody-sleep"><div class="perm-notice" id="perm-sleep" style="display:none"></div><div class="reminder-time-rows" id="rrows-sleep"></div><button class="add-time-btn" onclick="addReminderTime('sleep')">＋ 添加时间</button></div></div>
+    </div>
+
+    <!-- Pill -->
+    <div class="panel" id="panel-pill">
+      <div class="pill-list" id="pillList"></div>
+      <div class="pill-add-area">
+        <input type="text" class="pill-name-input" id="pillNameInput" placeholder="添加药物 / 维生素名称" maxlength="12"/>
+        <div class="time-chips-label">服用时间</div>
+        <div class="time-chips" id="timeChips">
+          <div class="chip active" data-time="早饭前">早饭前</div><div class="chip" data-time="早饭后">早饭后</div>
+          <div class="chip" data-time="午饭前">午饭前</div><div class="chip" data-time="午饭后">午饭后</div>
+          <div class="chip" data-time="晚饭前">晚饭前</div><div class="chip" data-time="晚饭后">晚饭后</div>
+          <div class="chip" data-time="睡前">睡前</div>
+        </div>
+        <button class="action-btn btn-pill-add" onclick="addPill()">＋ 添加</button>
+      </div>
+      <button class="reset-link" style="margin-top:4px" onclick="resetPills()">重置今日打卡</button>
+      <div class="reminder-bar"><div class="reminder-bar-header" onclick="toggleReminder('pill')"><span class="reminder-bell">🔔</span><span class="reminder-bar-title">吃药提醒</span><span class="reminder-bar-summary" id="rbs-pill"></span><span class="reminder-chevron" id="chev-pill">▾</span></div><div class="reminder-body" id="rbody-pill"><div class="perm-notice" id="perm-pill" style="display:none"></div><div class="reminder-time-rows" id="rrows-pill"></div><button class="add-time-btn" onclick="addReminderTime('pill')">＋ 添加时间</button></div></div>
+    </div>
+  </div>
+
+  <!-- Todo -->
+  <div class="card card-todo">
+    <div class="tc-pad">
+      <div class="tc-header">
+        <div class="tc-title">今日三件事</div>
+        <div class="tc-count" id="todoCount">0 / 3 完成</div>
+      </div>
+      <div class="tc-list" id="todoList"></div>
+      <div class="tc-motivation" id="todoMotivation"></div>
+      <button class="tc-reset" onclick="resetTodo()">重置今日清单</button>
+    </div>
+  </div>
+
+  <div class="app-footer" id="footerDate"></div>
+</div>
+</div><!-- /.page-scroll -->
+
+<div class="a2hs" id="a2hs">
+  <span class="a2hs-x" onclick="dismissA2HS()">✕</span>
+  点击底部 <strong>分享</strong> 按钮，然后选择<br>「添加到主屏幕」体验更像原生 App ✦
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+
+const $ = id => document.getElementById(id);
+const today = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'short'});
+$('dateLabel').textContent = today;
+$('footerDate').textContent = today;
+function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+
+// Show "Add to Home Screen" hint only on Safari iOS browser (not in standalone/PWA mode)
+const isSafariIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent) && !window.navigator.standalone;
+if(isSafariIOS && !localStorage.getItem('onemin_a2hs_done')){
+  setTimeout(()=>$('a2hs').classList.add('show'), 4000);
+}
+function dismissA2HS(){
+  $('a2hs').classList.remove('show');
+  localStorage.setItem('onemin_a2hs_done','1');
+}
+
+// ── Tabs ──
+function switchTab(name){
+  ['water','sleep','pill'].forEach(t=>{
+    $(`tab-${t}`).classList.toggle('active',t===name);
+    $(`panel-${t}`).classList.toggle('active',t===name);
+  });
+}
+
+// ══════════════════════════
+//  REMINDERS
+// ══════════════════════════
+const NOTIF_MSGS={
+  water:{title:'OneMinute · 该喝水了 💧',body:'记得补充水分，保持每天8杯水 🌊'},
+  sleep:{title:'OneMinute · 准备休息了 🌙',body:'是时候放下手机，好好睡一觉啦'},
+  pill: {title:'OneMinute · 吃药提醒 💊',body:'别忘记今天的药物和维生素'},
+};
+let reminders=JSON.parse(localStorage.getItem('onemin_r5')||JSON.stringify({
+  water:[{id:'w1',time:'09:00',enabled:true},{id:'w2',time:'13:00',enabled:true},{id:'w3',time:'18:00',enabled:true}],
+  sleep:[{id:'s1',time:'22:30',enabled:true}],
+  pill: [{id:'p1',time:'08:00',enabled:true}],
+}));
+function saveReminders(){ localStorage.setItem('onemin_r5',JSON.stringify(reminders)); }
+const notificationSupported = 'Notification' in window && typeof Notification.requestPermission === 'function';
+let lastFired=JSON.parse(localStorage.getItem('onemin_lf5')||'{}');
+function checkNotifs(){
+  if(!notificationSupported || Notification.permission!=='granted')return;
+  const now=new Date(),hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,ds=now.toDateString();
+  ['water','sleep','pill'].forEach(type=>{
+    reminders[type].forEach(r=>{
+      if(!r.enabled)return;
+      const key=`${type}-${r.id}-${ds}-${r.time}`;
+      if(r.time===hhmm&&!lastFired[key]){ lastFired[key]=true; localStorage.setItem('onemin_lf5',JSON.stringify(lastFired)); try{ new Notification(NOTIF_MSGS[type].title,{body:NOTIF_MSGS[type].body}); }catch(e){} }
+    });
+  });
+}
+setInterval(checkNotifs,30000); checkNotifs();
+
+const openBars={};
+function toggleReminder(type){
+  openBars[type]=!openBars[type];
+  $(`rbody-${type}`).classList.toggle('open',openBars[type]);
+  $(`chev-${type}`).classList.toggle('open',openBars[type]);
+  if(openBars[type]){ renderPermNotice(type); renderReminderRows(type); }
+}
+function renderPermNotice(type){
+  const el=$(`perm-${type}`);
+  if(!notificationSupported){
+    el.innerHTML='<span class="perm-notice-text">当前浏览器不支持网页通知，其他功能可正常使用。</span>';
+    el.style.display='flex';
+    return;
+  }
+  const p=Notification.permission;
+  if(p==='granted'){el.style.display='none';return;}
+  el.innerHTML=p==='denied'?`<span class="perm-notice-text">通知权限已拒绝，请在设置中手动开启。</span>`:`<span class="perm-notice-text">开启通知，时间到自动提醒你。</span><button class="perm-grant-btn" onclick="requestPerm('${type}')">开启</button>`;
+  el.style.display='flex';
+}
+function requestPerm(type){
+  if(!notificationSupported){ showToast('当前浏览器不支持网页通知'); return; }
+  Promise.resolve(Notification.requestPermission()).then(p=>{
+    renderPermNotice(type);
+    showToast(p==='granted'?'✓ 通知权限已开启':'未能获得权限');
+  }).catch(()=>showToast('未能获得权限'));
+}
+function renderReminderRows(type){
+  const c=$(`rrows-${type}`); c.innerHTML='';
+  reminders[type].forEach(r=>{
+    const row=document.createElement('div'); row.className='reminder-time-row';
+    row.innerHTML=`<input type="time" class="rtr-time" value="${r.time}" onchange="updateReminderTime('${type}','${r.id}',this.value)"/><label class="toggle"><input type="checkbox" ${r.enabled?'checked':''} onchange="toggleReminderEnabled('${type}','${r.id}',this.checked)"/><span class="toggle-slider"></span></label><button class="rtr-del" onclick="deleteReminderTime('${type}','${r.id}')">✕</button>`;
+    c.appendChild(row);
+  });
+  updateReminderSummary(type);
+}
+function updateReminderTime(t,id,v){ const r=reminders[t].find(x=>x.id===id); if(r){r.time=v;saveReminders();updateReminderSummary(t);} }
+function toggleReminderEnabled(t,id,v){ const r=reminders[t].find(x=>x.id===id); if(r){r.enabled=v;saveReminders();updateReminderSummary(t);} }
+function deleteReminderTime(t,id){ reminders[t]=reminders[t].filter(r=>r.id!==id); saveReminders(); renderReminderRows(t); }
+function addReminderTime(t){ reminders[t].push({id:t[0]+Date.now(),time:'08:00',enabled:true}); saveReminders(); renderReminderRows(t); }
+function updateReminderSummary(t){ $(`rbs-${t}`).textContent=reminders[t].filter(r=>r.enabled).map(r=>r.time).join(' · ')||'未启用'; }
+['water','sleep','pill'].forEach(t=>updateReminderSummary(t));
+
+// ══════════════════════════
+//  WATER
+// ══════════════════════════
+const TOTAL=8, CIRC=2*Math.PI*64;
+let wCount=parseInt(localStorage.getItem('onemin_water')||'0');
+const dropsRow=$('dropsRow');
+for(let i=0;i<TOTAL;i++){
+  const d=document.createElement('div'); d.className='drop'; d.id=`drop-${i}`;
+  d.innerHTML=`<svg viewBox="0 0 16 20" fill="none"><path class="drop-body" d="M8 1C8 1 2 8.5 2 12.5C2 15.8 4.7 18.5 8 18.5C11.3 18.5 14 15.8 14 12.5C14 8.5 8 1 8 1Z" fill="var(--cream-dark)"/></svg>`;
+  dropsRow.appendChild(d);
+}
+function renderWater(animate){
+  const ring=$('ring'); $('countText').textContent=`${wCount}/8`;
+  ring.style.strokeDashoffset=CIRC*(1-wCount/TOTAL); ring.classList.toggle('complete',wCount===TOTAL);
+  for(let i=0;i<TOTAL;i++){
+    const drop=$(`drop-${i}`),path=drop.querySelector('.drop-body');
+    if(i<wCount){ drop.classList.add('filled'); path.setAttribute('fill',wCount===TOTAL?'var(--sage)':'var(--water)'); if(animate&&i===wCount-1){drop.classList.remove('just-filled');void drop.offsetWidth;drop.classList.add('just-filled');} }
+    else{ drop.classList.remove('filled'); path.setAttribute('fill','var(--cream-dark)'); }
+  }
+  const btn=$('drinkBtn'),msg=$('completeMsg');
+  if(wCount===TOTAL){ btn.classList.add('done'); btn.textContent='今天已完成 ✓'; msg.classList.add('visible'); }
+  else{ btn.classList.remove('done'); btn.textContent='我喝水啦'; msg.classList.remove('visible'); }
+  localStorage.setItem('onemin_water',wCount);
+}
+function handleDrink(e){
+  if(wCount>=TOTAL)return;
+  const btn=$('drinkBtn'),rip=document.createElement('span'); rip.className='ripple';
+  const rect=btn.getBoundingClientRect(),size=Math.max(rect.width,rect.height);
+  rip.style.cssText=`width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  btn.appendChild(rip); setTimeout(()=>rip.remove(),600);
+  const ct=$('countText'); ct.classList.remove('bump'); void ct.offsetWidth; ct.classList.add('bump'); setTimeout(()=>ct.classList.remove('bump'),300);
+  wCount++; renderWater(true);
+}
+function resetWater(){ wCount=0; renderWater(false); }
+renderWater(false);
+
+// ══════════════════════════
+//  SLEEP
+// ══════════════════════════
+let sleepQuality=parseInt(localStorage.getItem('onemin_sleepq')||'3');
+let sleepHistory=JSON.parse(localStorage.getItem('onemin_sleephist')||'[]');
+const starsEl=$('qualityStars');
+for(let i=1;i<=5;i++){
+  const s=document.createElement('div'); s.className='star'+(i<=sleepQuality?' lit':'');
+  s.onclick=()=>{ sleepQuality=i; renderStars(); localStorage.setItem('onemin_sleepq',i); };
+  starsEl.appendChild(s);
+}
+function renderStars(){ starsEl.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',i<sleepQuality)); }
+function calcHours(s,e){ const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number); let m=(eh*60+em)-(sh*60+sm); if(m<0)m+=1440; return +(m/60).toFixed(1); }
+function updateSleepDisplay(){ $('sleepDuration').innerHTML=`${calcHours($('sleepStart').value,$('sleepEnd').value)} <span>小时</span>`; }
+$('sleepStart').addEventListener('change',updateSleepDisplay);
+$('sleepEnd').addEventListener('change',updateSleepDisplay);
+const ss=localStorage.getItem('onemin_sleepstart'),se=localStorage.getItem('onemin_sleepend');
+if(ss)$('sleepStart').value=ss; if(se)$('sleepEnd').value=se;
+updateSleepDisplay();
+const DAY_LABELS=['一','二','三','四','五','六','日'];
+function renderHistory(){
+  const bars=$('historyBars'); bars.innerHTML='';
+  const last7=sleepHistory.slice(-7); while(last7.length<7)last7.unshift(null);
+  const maxH=Math.max(...last7.map(d=>d?d.hours:0),8);
+  last7.forEach((d,idx)=>{
+    const wrap=document.createElement('div'); wrap.className='bar-wrap';
+    const bar=document.createElement('div'); bar.className='bar'+(idx===6?' today':'');
+    bar.style.height=(d?Math.round((d.hours/maxH)*30):3)+'px';
+    const lbl=document.createElement('div'); lbl.className='bar-day';
+    const dow=new Date(); dow.setDate(dow.getDate()-(6-idx));
+    lbl.textContent=DAY_LABELS[dow.getDay()===0?6:dow.getDay()-1];
+    wrap.appendChild(bar); wrap.appendChild(lbl); bars.appendChild(wrap);
+  });
+}
+renderHistory();
+function saveSleep(){
+  const h=calcHours($('sleepStart').value,$('sleepEnd').value);
+  localStorage.setItem('onemin_sleepstart',$('sleepStart').value);
+  localStorage.setItem('onemin_sleepend',$('sleepEnd').value);
+  const ts=new Date().toDateString(),idx=sleepHistory.findIndex(d=>d.date===ts);
+  const entry={date:ts,hours:h,quality:sleepQuality};
+  if(idx>=0)sleepHistory[idx]=entry; else sleepHistory.push(entry);
+  if(sleepHistory.length>30)sleepHistory.shift();
+  localStorage.setItem('onemin_sleephist',JSON.stringify(sleepHistory));
+  renderHistory(); showToast('✦ 睡眠记录已保存');
+}
+
+// ══════════════════════════
+//  PILLS
+// ══════════════════════════
+const DEFAULT_PILLS=[{id:'vit-c',name:'维生素 C',time:'早饭后',emoji:'🍊'},{id:'vit-d',name:'维生素 D',time:'早饭后',emoji:'☀️'}];
+let pills=JSON.parse(localStorage.getItem('onemin_pills')||JSON.stringify(DEFAULT_PILLS));
+let pillTaken=JSON.parse(localStorage.getItem('onemin_pilltaken')||'{}');
+function renderPills(){
+  const list=$('pillList'); list.innerHTML='';
+  pills.forEach(p=>{
+    const item=document.createElement('div'); item.className='pill-item'+(pillTaken[p.id]?' taken':'');
+    item.onclick=()=>togglePill(p.id);
+    item.innerHTML=`<div class="pill-check">${pillTaken[p.id]?'✓':''}</div><div class="pill-info"><div class="pill-name">${p.name}</div><div class="pill-time">${p.time}</div></div><div class="pill-emoji">${p.emoji}</div>`;
+    list.appendChild(item);
+  });
+  if(!pills.length){ const e=document.createElement('div'); e.style.cssText='text-align:center;color:var(--ink-light);font-size:12px;font-weight:300;padding:10px 0;opacity:.5;'; e.textContent='还没有添加药物或维生素'; list.appendChild(e); }
+}
+function togglePill(id){ pillTaken[id]=!pillTaken[id]; localStorage.setItem('onemin_pilltaken',JSON.stringify(pillTaken)); renderPills(); if(pills.length>0&&pills.every(p=>pillTaken[p.id]))showToast('✦ 今日药物全部完成！'); }
+const PILL_EMOJIS=['💊','🌿','🍋','🫐','🌸','⚡','🧡','🌙'];
+document.querySelectorAll('.chip').forEach(chip=>{ chip.addEventListener('click',()=>{ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); chip.classList.add('active'); }); });
+function getSelectedTime(){ const a=document.querySelector('.chip.active'); return a?a.dataset.time:'饭后服用'; }
+function addPill(){
+  const input=$('pillNameInput'),name=input.value.trim(); if(!name)return;
+  pills.push({id:'pill-'+Date.now(),name,time:getSelectedTime(),emoji:PILL_EMOJIS[pills.length%PILL_EMOJIS.length]});
+  localStorage.setItem('onemin_pills',JSON.stringify(pills)); input.value=''; renderPills(); showToast('已添加：'+name);
+}
+$('pillNameInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addPill();} });
+function resetPills(){ pillTaken={}; localStorage.setItem('onemin_pilltaken',JSON.stringify(pillTaken)); renderPills(); }
+renderPills();
+
+// ══════════════════════════
+//  WEATHER
+// ══════════════════════════
+const WMO_EMOJI={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'❄️',77:'🌨',80:'🌦',81:'🌦',82:'⛈',85:'🌨',86:'🌨',95:'⛈',96:'⛈',99:'⛈'};
+const WMO_CODE={0:'晴朗',1:'基本晴朗',2:'局部多云',3:'阴天',45:'有雾',48:'冻雾',51:'小毛毛雨',53:'毛毛雨',55:'浓毛毛雨',61:'小雨',63:'中雨',65:'大雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'阵雨',81:'阵雨',82:'强阵雨',85:'阵雪',86:'强阵雪',95:'雷阵雨',96:'含冰雹雷阵雨',99:'强冰雹雷阵雨'};
+const PHRASES={sun:['阳光正好，适合出门走走 ☀️','晴天是大自然的礼物','好天气，心情也跟着好了'],rain:['记得带伞出门 ☔','雨天适合在家读书 📖','听雨声也是一种治愈 🌧'],cloud:['多云的天气有它的温柔','阴天适合喝一杯热茶 ☕','云后面藏着太阳呢'],snow:['下雪了，注意保暖 🧣','冬日里最温柔的礼物 ❄️'],fog:['有雾，出行注意安全','雾气朦胧，像一首轻柔的诗']};
+function getPhrase(code){
+  const h=new Date().getHours()%3;
+  if(code<=1)return PHRASES.sun[h]; if(code>=61&&code<=82)return PHRASES.rain[h];
+  if(code>=71&&code<=77)return PHRASES.snow[h]; if(code>=45&&code<=48)return PHRASES.fog[h%2];
+  return PHRASES.cloud[h];
+}
+
+// Auto-load weather on page open
+(function initWeather(){
+  const cached=localStorage.getItem('onemin_weather');
+  if(cached){ const d=JSON.parse(cached); if(Date.now()-d.ts<15*60*1000){ renderWeather(d); return; } }
+  fetchWeatherGeo();
+})();
+
+function fetchWeatherGeo(){
+  if(!navigator.geolocation){ showWeatherError('浏览器不支持定位'); return; }
+  $('weatherInner') && ($('weatherInner').textContent='📍 正在定位…');
+  navigator.geolocation.getCurrentPosition(
+    pos=>fetchWeatherData(pos.coords.latitude,pos.coords.longitude),
+    err=>{ const m={1:'位置权限被拒绝，请在设置中开启',2:'无法获取位置',3:'定位超时'}; showWeatherError(m[err.code]||'定位失败'); },
+    {timeout:10000,maximumAge:60000}
+  );
+}
+
+async function fetchWeatherData(lat,lon){
+  const lo=$('weatherInner'); if(lo)lo.textContent='🌐 获取天气中…';
+  try{
+    const [wr,gr]=await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`),
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`)
+    ]);
+    const w=await wr.json(), g=await gr.json();
+    const city=g.address?.city||g.address?.town||g.address?.county||g.address?.state||'当前位置';
+    const data={ts:Date.now(),city,temp:Math.round(w.current.temperature_2m),feels:Math.round(w.current.apparent_temperature),humidity:w.current.relative_humidity_2m,wind:Math.round(w.current.wind_speed_10m),code:w.current.weather_code,daily:{codes:w.daily.weather_code,max:w.daily.temperature_2m_max.map(Math.round),min:w.daily.temperature_2m_min.map(Math.round)}};
+    localStorage.setItem('onemin_weather',JSON.stringify(data));
+    renderWeather(data);
+  }catch(e){ showWeatherError('天气获取失败，请检查网络'); }
+}
+
+function showWeatherError(msg){
+  $('weatherCard').innerHTML=`<div class="wm-error">${msg}</div><button class="wm-retry" onclick="localStorage.removeItem('onemin_weather');initWeatherRetry()">🔄 重试</button>`;
+}
+function initWeatherRetry(){ $('weatherCard').innerHTML='<div class="wm-loading">🌤 正在获取天气…</div>'; fetchWeatherGeo(); }
+
+const FC_DAYS=['明日','后日','大后天','第四天'];
+function renderWeather(d){
+  $('weatherCard').innerHTML=`
+    <div class="wm-top">
+      <div class="wm-icon">${WMO_EMOJI[d.code]||'🌤'}</div>
+      <div class="wm-temp-wrap">
+        <div class="wm-temp">${d.temp}<span>°C</span></div>
+        <div class="wm-desc">${WMO_CODE[d.code]||''}</div>
+      </div>
+      <div class="wm-right">
+        <div class="wm-city">${d.city}</div>
+        <div class="wm-phrase">${getPhrase(d.code)}</div>
+      </div>
+    </div>
+    <div class="wm-details">
+      <div class="wm-detail"><div class="wmd-label">体感</div><div class="wmd-val">${d.feels}°C</div></div>
+      <div class="wm-detail"><div class="wmd-label">湿度</div><div class="wmd-val">${d.humidity}%</div></div>
+      <div class="wm-detail"><div class="wmd-label">风速</div><div class="wmd-val">${d.wind}km/h</div></div>
+    </div>
+    <div class="wm-forecast">
+      ${d.daily.codes.slice(1,5).map((c,i)=>`<div class="wm-fc"><div class="wm-fc-day">${FC_DAYS[i]}</div><div class="wm-fc-icon">${WMO_EMOJI[c]||'🌤'}</div><div class="wm-fc-temp">${d.daily.min[i+1]}~${d.daily.max[i+1]}°</div></div>`).join('')}
+    </div>`;
+}
+
+// ══════════════════════════
+//  TODO
+// ══════════════════════════
+const MOTIV={idle:['写下今天最想完成的三件事 ✨','专注三件，胜过焦虑一百件 🌿','今天的你，比昨天更进一步'],doing:['已经开始了，继续加油 💪','一步一步，稳稳向前 🍃','你比你想象的更有能力'],done:['今天的三件事全部完成 🎉','你做到了，好好休息吧 🌸','今天是充实的一天 ✦']};
+const PLACEHOLDERS=['今天最重要的第一件事…','第二件重要的事…','第三件重要的事…'];
+const todayStr=new Date().toDateString();
+if(localStorage.getItem('onemin_tododate')!==todayStr){ localStorage.setItem('onemin_tododate',todayStr); localStorage.removeItem('onemin_todos'); }
+let todos=JSON.parse(localStorage.getItem('onemin_todos')||JSON.stringify([{id:'t1',text:'',done:false},{id:'t2',text:'',done:false},{id:'t3',text:'',done:false}]));
+function saveTodos(){ localStorage.setItem('onemin_todos',JSON.stringify(todos)); }
+
+function renderTodo(){
+  const list=$('todoList'); list.innerHTML='';
+  const done=todos.filter(t=>t.done).length;
+  $('todoCount').textContent=`${done} / 3 完成`;
+  todos.forEach((todo,i)=>{
+    const item=document.createElement('div'); item.className='tc-item'+(todo.done?' done-item':'');
+    const num=document.createElement('div'); num.className='tc-num'; num.textContent=i+1;
+    const wrap=document.createElement('div'); wrap.className='tc-input-wrap';
+    const inp=document.createElement('textarea'); inp.className='tc-input';
+    inp.placeholder=PLACEHOLDERS[i]; inp.value=todo.text; inp.rows=1;
+    if(todo.done)inp.readOnly=true;
+    inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; todos[i].text=inp.value; saveTodos(); renderMotivation(); });
+    wrap.appendChild(inp);
+    const btn=document.createElement('button'); btn.className='tc-check'; btn.innerHTML=todo.done?'✓':'';
+    btn.onclick=()=>{ if(!todos[i].text.trim()&&!todos[i].done)return; todos[i].done=!todos[i].done; saveTodos(); renderTodo(); if(todos.every(t=>t.done))showToast('✦ 今日三件事全部完成！'); };
+    item.appendChild(num); item.appendChild(wrap); item.appendChild(btn);
+    list.appendChild(item);
+    setTimeout(()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; },0);
+  });
+  renderMotivation();
+}
+function renderMotivation(){
+  const done=todos.filter(t=>t.done).length, hasAny=todos.some(t=>t.text.trim());
+  const pool=done===3?MOTIV.done:(done>0||hasAny?MOTIV.doing:MOTIV.idle);
+  const m=$('todoMotivation');
+  m.textContent=pool[Math.floor(new Date().getHours()/8)%pool.length];
+  m.classList.toggle('all-done',done===3);
+}
+function resetTodo(){ todos=[{id:'t1',text:'',done:false},{id:'t2',text:'',done:false},{id:'t3',text:'',done:false}]; saveTodos(); renderTodo(); }
+renderTodo();
+
+// ══════════════════════════
+//  AI FLOATING BALL
+// ══════════════════════════
+let aiPanelOpen = false;
+let aiHistory = [];
+let aiTyping = false;
+let suggestionsDismissed = false;
+
+const SYSTEM_PROMPT = `你是 OneMinute 的专属健康助手，温暖、专业、治愈。
+只回答健康相关问题：饮水、睡眠、营养、运动、心理健康、日常习惯、药物一般常识。
+非健康话题请温和引导回健康话题。
+回答简洁实用，适合手机阅读，150字以内。
+不给具体医疗诊断或处方，需要医疗介入时建议咨询医生。
+用中文回答，可适当使用 emoji，但不要过多。`;
+
+// ── Floating ball drag & click ──
+const fab = $('aiFab');
+const AI_CONFIG={
+  provider:'DeepSeek',
+  endpoint:'/.netlify/functions/chat'
+};
+let isDragging = false;
+let dragMoved = false;
+let dragStartX = 0, dragStartY = 0;
+let fabStartLeft = 0, fabStartTop = 0;
+
+// Convert right/bottom CSS to left/top so drag works in one coordinate space
+function anchorFabToLeftTop() {
+  const r = fab.getBoundingClientRect();
+  fab.style.left   = r.left + 'px';
+  fab.style.top    = r.top  + 'px';
+  fab.style.right  = 'auto';
+  fab.style.bottom = 'auto';
+}
+
+function onDragStart(e) {
+  e.preventDefault();
+  anchorFabToLeftTop();
+  const pt = e.touches ? e.touches[0] : e;
+  dragStartX  = pt.clientX;
+  dragStartY  = pt.clientY;
+  fabStartLeft = parseFloat(fab.style.left);
+  fabStartTop  = parseFloat(fab.style.top);
+  isDragging = true;
+  dragMoved  = false;
+  fab.classList.add('dragging');
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  const dx = pt.clientX - dragStartX;
+  const dy = pt.clientY - dragStartY;
+  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
+  const maxX = window.innerWidth  - fab.offsetWidth;
+  const maxY = window.innerHeight - fab.offsetHeight;
+  fab.style.left = Math.max(0, Math.min(fabStartLeft + dx, maxX)) + 'px';
+  fab.style.top  = Math.max(0, Math.min(fabStartTop  + dy, maxY)) + 'px';
+  if (aiPanelOpen) positionPanel();
+}
+
+function onDragEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  fab.classList.remove('dragging');
+  if (!dragMoved) toggleAI();
+  else if (aiPanelOpen) positionPanel();
+}
+
+fab.addEventListener('mousedown',  onDragStart);
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('mouseup',   onDragEnd);
+fab.addEventListener('touchstart', onDragStart, { passive: false });
+document.addEventListener('touchmove', onDragMove, { passive: false });
+document.addEventListener('touchend',  onDragEnd);
+
+// ── Panel positioning (open near fab, prefer above) ──
+function positionPanel() {
+  const panel = $('aiPanel');
+  const fr  = fab.getBoundingClientRect();
+  const pw  = 340;
+  const ph  = Math.min(520, window.innerHeight * 0.75);
+  const vw  = window.innerWidth;
+  const vh  = window.innerHeight;
+  const gap = 10, margin = 10;
+
+  let left = fr.left + fr.width / 2 - pw / 2;
+  let top  = fr.top - ph - gap;           // prefer above
+  if (top < margin)    top = fr.bottom + gap;   // fall to below
+  if (top + ph > vh - margin) top = vh - ph - margin;
+  left = Math.max(margin, Math.min(left, vw - pw - margin));
+
+  panel.style.left = left + 'px';
+  panel.style.top  = top  + 'px';
+}
+
+function toggleAI() { aiPanelOpen ? closeAI() : openAI(); }
+
+function openAI() {
+  aiPanelOpen = true;
+  const panel = $('aiPanel');
+  panel.style.display = 'flex';
+  positionPanel();
+  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
+  if (aiHistory.length === 0) showAIWelcome();
+  setTimeout(() => { const m = $('aiMsgs'); if(m) m.scrollTop = m.scrollHeight; }, 150);
+}
+
+function closeAI() {
+  aiPanelOpen = false;
+  const panel = $('aiPanel');
+  panel.classList.remove('open');
+  setTimeout(() => { if(!aiPanelOpen) panel.style.display = 'none'; }, 250);
+}
+
+// Close when clicking outside
+document.addEventListener('pointerdown', e => {
+  if (aiPanelOpen && !$('aiPanel').contains(e.target) && !fab.contains(e.target)) closeAI();
+});
+
+// Close button
+$('aiCloseBtn').addEventListener('click', e => { e.stopPropagation(); closeAI(); });
+
+// Send button
+$('aiSendBtn').addEventListener('click', e => { e.stopPropagation(); sendAI(); });
+
+// Input: Enter to send (Shift+Enter for newline), auto-resize while typing
+const aiInputEl = $('aiInput');
+aiInputEl.addEventListener('input', () => autoResizeAI(aiInputEl));
+aiInputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAI(); }
+});
+
+// Suggestion chips (delegated — chips are static, but bind directly since they never change)
+document.querySelectorAll('.ai-chip').forEach(chip => {
+  chip.addEventListener('click', e => { e.stopPropagation(); sendSuggestion(chip); });
+});
+
+function showAIWelcome(){
+  addAIMessage('ai','你好！我是你的健康助手 🌿 可以问我饮水、睡眠、营养、运动等健康问题。');
+}
+
+function autoResizeAI(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,90)+'px';
+}
+
+function sendSuggestion(el){
+  $('aiInput').value = el.textContent;
+  if(!suggestionsDismissed){ $('aiSugg').style.display='none'; suggestionsDismissed=true; }
+  sendAI();
+}
+
+async function sendAI(){
+  const input=$('aiInput');
+  const text=input.value.trim();
+  if(!text||aiTyping)return;
+  input.value=''; input.style.height='auto';
+  $('aiSendBtn').disabled=true; aiTyping=true;
+  addAIMessage('user',text);
+  aiHistory.push({role:'user',content:text});
+  const msgs=$('aiMsgs');
+  setTimeout(()=>{ msgs.scrollTop=msgs.scrollHeight; },50);
+  const tid='typing-'+Date.now();
+  const tel=document.createElement('div'); tel.className='msg msg-ai'; tel.id=tid;
+  tel.innerHTML='<div class="msg-bubble"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+  msgs.appendChild(tel); msgs.scrollTop=msgs.scrollHeight;
+  try{
+    const res=await fetch(AI_CONFIG.endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        system:SYSTEM_PROMPT,
+        messages:aiHistory.slice(-12)
+      })
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data.error?.message||data.message||`HTTP ${res.status}`);
+    const reply=data.choices?.[0]?.message?.content||'抱歉，暂时无法回答，请稍后再试。';
+    aiHistory.push({role:'assistant',content:reply});
+    const te=$(tid); if(te)te.remove();
+    addAIMessage('ai',reply);
+    if(aiHistory.length>20) aiHistory=aiHistory.slice(-20);
+  }catch(e){
+    const te=$(tid); if(te)te.remove();
+    addAIMessage('ai',`连接 ${AI_CONFIG.provider} 失败：${e.message||'请稍后再试'}`);
+  }
+  aiTyping=false; $('aiSendBtn').disabled=false;
+  setTimeout(()=>{ msgs.scrollTop=msgs.scrollHeight; },50);
+}
+
+function addAIMessage(role,text){
+  const msgs=$('aiMsgs');
+  const now=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  const div=document.createElement('div'); div.className=`msg msg-${role}`;
+  div.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${now}</div>`;
+  msgs.appendChild(div);
+  setTimeout(()=>{ msgs.scrollTop=msgs.scrollHeight; },30);
+}
+
+
+
+</script>
+</body>
+</html>
