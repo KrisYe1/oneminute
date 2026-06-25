@@ -212,15 +212,17 @@
     .tc-title{font-size:13px;font-weight:300;letter-spacing:.1em;color:var(--ink);}
     .tc-count{font-size:11px;font-weight:300;color:var(--ink-light);letter-spacing:.04em;}
     .tc-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
-    .tc-item{display:flex;align-items:flex-start;gap:9px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;transition:opacity .3s;}
+    .tc-item{display:flex;align-items:flex-start;gap:9px;background:rgba(255,252,245,.8);border:1px solid var(--cream-dark);border-radius:12px;padding:12px 11px;transition:opacity .3s,border-color .2s,background .2s,box-shadow .2s;cursor:text;}
+    .tc-item:focus-within{border-color:rgba(212,130,110,.38);background:#fffaf3;box-shadow:0 2px 10px rgba(212,130,110,.08);}
     .tc-item.done-item{opacity:.46;}
     .tc-item.done-item .tc-input{text-decoration:line-through;color:var(--ink-light);}
     .tc-num{width:20px;height:20px;border-radius:50%;background:var(--cream-dark);font-size:10px;font-weight:400;color:var(--ink-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:background .3s,color .3s;}
     .tc-item.done-item .tc-num{background:var(--todo);color:white;}
     .tc-input-wrap{flex:1;min-width:0;}
-    .tc-input{width:100%;background:none;border:none;font-family:inherit;font-size:14px;font-weight:300;color:var(--ink);outline:none;line-height:1.45;-webkit-appearance:none;resize:none;overflow:hidden;}
+    .tc-input{width:100%;background:none;border:none;font-family:inherit;font-size:16px;font-weight:300;color:var(--ink);outline:none;line-height:1.45;-webkit-appearance:none;resize:none;overflow:hidden;min-height:24px;}
     .tc-input::placeholder{color:var(--ink-light);opacity:.38;}
     .tc-check{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--cream-dark);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;font-size:11px;color:transparent;transition:background .3s,border-color .3s,color .3s,transform .3s cubic-bezier(.34,1.56,.64,1);-webkit-user-select:none;user-select:none;}
+    .tc-check:disabled{opacity:.28;cursor:default;}
     .tc-item.done-item .tc-check{background:var(--todo);border-color:var(--todo);color:white;transform:scale(1.05);}
     .tc-motivation{font-size:11px;font-weight:300;letter-spacing:.06em;color:var(--ink-light);text-align:center;padding:6px 0 2px;line-height:1.65;}
     .tc-motivation.all-done{color:var(--todo);}
@@ -743,6 +745,13 @@ const todayStr=new Date().toDateString();
 if(localStorage.getItem('onemin_tododate')!==todayStr){ localStorage.setItem('onemin_tododate',todayStr); localStorage.removeItem('onemin_todos'); }
 let todos=JSON.parse(localStorage.getItem('onemin_todos')||JSON.stringify([{id:'t1',text:'',done:false},{id:'t2',text:'',done:false},{id:'t3',text:'',done:false}]));
 function saveTodos(){ localStorage.setItem('onemin_todos',JSON.stringify(todos)); }
+function sizeTodoInput(inp){ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; }
+function focusTodo(index){
+  setTimeout(()=>{
+    const el=document.querySelector(`.tc-input[data-index="${index}"]`);
+    if(el&&!el.readOnly){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); }
+  },60);
+}
 
 function renderTodo(){
   const list=$('todoList'); list.innerHTML='';
@@ -753,15 +762,32 @@ function renderTodo(){
     const num=document.createElement('div'); num.className='tc-num'; num.textContent=i+1;
     const wrap=document.createElement('div'); wrap.className='tc-input-wrap';
     const inp=document.createElement('textarea'); inp.className='tc-input';
-    inp.placeholder=PLACEHOLDERS[i]; inp.value=todo.text; inp.rows=1;
+    inp.placeholder=PLACEHOLDERS[i]; inp.value=todo.text; inp.rows=1; inp.maxLength=80; inp.dataset.index=i;
+    inp.setAttribute('aria-label',`今日第 ${i+1} 件事`);
     if(todo.done)inp.readOnly=true;
-    inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; todos[i].text=inp.value; saveTodos(); renderMotivation(); });
+    inp.addEventListener('input',()=>{
+      sizeTodoInput(inp);
+      todos[i].text=inp.value;
+      saveTodos();
+      btn.disabled=!todos[i].text.trim()&&!todos[i].done;
+      renderMotivation();
+    });
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&!e.shiftKey){
+        e.preventDefault();
+        if(i<todos.length-1)focusTodo(i+1); else inp.blur();
+      }
+    });
     wrap.appendChild(inp);
     const btn=document.createElement('button'); btn.className='tc-check'; btn.innerHTML=todo.done?'✓':'';
-    btn.onclick=()=>{ if(!todos[i].text.trim()&&!todos[i].done)return; todos[i].done=!todos[i].done; saveTodos(); renderTodo(); if(todos.every(t=>t.done))showToast('✦ 今日三件事全部完成！'); };
+    btn.type='button';
+    btn.setAttribute('aria-label',todo.done?'标记为未完成':'标记为完成');
+    btn.disabled=!todo.text.trim()&&!todo.done;
+    btn.onclick=()=>{ if(!todos[i].text.trim()&&!todos[i].done)return; todos[i].done=!todos[i].done; saveTodos(); renderTodo(); if(todos.every(t=>t.done))showToast('✦ 今日三件事全部完成！'); else if(todos[i].done){ const next=todos.findIndex(t=>!t.done&&!t.text.trim()); if(next>=0)focusTodo(next); } };
+    item.addEventListener('click',e=>{ if(e.target===btn||todo.done)return; inp.focus(); });
     item.appendChild(num); item.appendChild(wrap); item.appendChild(btn);
     list.appendChild(item);
-    setTimeout(()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; },0);
+    setTimeout(()=>sizeTodoInput(inp),0);
   });
   renderMotivation();
 }
