@@ -29,7 +29,20 @@
       background:var(--cream);
       font-family:'Noto Sans SC',sans-serif;
       color:var(--ink);
-      min-height:100dvh;
+      height:100dvh;
+      overflow:hidden;
+      position:fixed;
+      inset:0;
+      -webkit-tap-highlight-color:transparent;
+    }
+    /* All scrollable page content lives in this wrapper instead of body itself.
+       Keeping body non-scrolling avoids an iOS Safari bug where fixed-position
+       children of a scrolling body silently stop receiving touch events
+       inside a normal browser tab (this does not happen in standalone/PWA
+       mode, which is why "Add to Home Screen" appeared to fix it). */
+    .page-scroll{
+      height:100%;
+      width:100%;
       display:flex;flex-direction:column;align-items:center;
       overflow-x:hidden;overflow-y:auto;
       -webkit-overflow-scrolling:touch;
@@ -299,7 +312,10 @@
 <div class="bg-orb orb-2"></div>
 <div class="bg-orb orb-3"></div>
 
-<!-- AI Floating Ball — rendered BEFORE script so DOM is ready when JS runs -->
+<!-- AI Floating Ball — rendered BEFORE script so DOM is ready when JS runs.
+     Lives as a direct child of <body> (which no longer scrolls), so it is
+     always positioned relative to the real viewport and always receives
+     touch events, in both normal browser tabs and standalone/PWA mode. -->
 <div class="ai-fab" id="aiFab">
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 3C7.03 3 3 6.58 3 11c0 2.4 1.1 4.57 2.87 6.09L5 21l4.22-1.84C10.35 19.7 11.16 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z" fill="rgba(255,255,255,0.96)"/>
@@ -337,6 +353,7 @@
   <div class="ai-disc">仅供参考，不构成医疗建议。如有需要请咨询专业医生。</div>
 </div>
 
+<div class="page-scroll">
 <div class="app">
 
   <!-- Weather -->
@@ -426,6 +443,7 @@
 
   <div class="app-footer" id="footerDate"></div>
 </div>
+</div><!-- /.page-scroll -->
 
 <div class="a2hs" id="a2hs">
   <span class="a2hs-x" onclick="dismissA2HS()">✕</span>
